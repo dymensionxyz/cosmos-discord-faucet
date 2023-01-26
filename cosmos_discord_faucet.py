@@ -293,7 +293,7 @@ async def token_request(message, testnet: dict):
                 if testnet["block_explorer_tx"]:
                     await message.reply(f'✅  <{testnet["block_explorer_tx"]}{transfer}>')
                 else:
-                    await message.reply(f'✅ Hash ID: {transfer}')
+                    await message.reply(f'✅ Your tx is approved. To view your tx status, type `$tx_info {transfer} {testnet["name"]}`')
                 # Get faucet balance and save to transaction log
                 balance = await get_faucet_balance(testnet)
                 await save_transaction_statistics(f'{now.isoformat(timespec="seconds")},'

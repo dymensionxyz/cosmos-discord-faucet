@@ -9,3 +9,5 @@ lint.sh
 
 # Logs
 transactions.csv
+
+.vscode
