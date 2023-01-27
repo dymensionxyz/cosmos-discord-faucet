@@ -29,7 +29,7 @@ cosmos-discord-faucet$ pip install -r requirements.txt
 ```
 
 1. [Create a Discord token](https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token)
-2. Add the bot token to `config.toml`
+2. Set the bot token as a `DISCORD_TOKEN` environment variable.
 3. Modify the nodes, faucet addresses, amount to send, etc. in `config.toml`
 
 ## Usage

@@ -11,20 +11,11 @@ import subprocess
 import logging
 import toml
 
-# Load config
-config = toml.load('config.toml')
-
-try:
-    EXECUTABLE = config['dymension']['executable']
-except KeyError as key:
-    logging.error('Key not found in config: %s', key)
-    raise key
-
-def check_address(address: str):
+def check_address(executable: str, address: str):
     """
     dymd keys parse <address>
     """
-    check = subprocess.run([EXECUTABLE, "keys", "parse",
+    check = subprocess.run([executable, "keys", "parse",
                             f"{address}",
                             '--output=json'],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -42,11 +33,11 @@ def check_address(address: str):
     return None
 
 
-def get_balance(address: str, node: str, chain_id: str):
+def get_balance(executable: str, address: str, node: str, chain_id: str):
     """
     dymd query bank balances <address> <node> <chain-id>
     """
-    balance = subprocess.run([EXECUTABLE, "query", "bank", "balances",
+    balance = subprocess.run([executable, "query", "bank", "balances",
                               f"{address}",
                               f"--node={node}",
                               f"--chain-id={chain_id}",
@@ -66,12 +57,12 @@ def get_balance(address: str, node: str, chain_id: str):
     return None
 
 
-def get_node_status(node: str):
+def get_node_status(executable: str, node: str):
     """
     dymd status <node>
     """
     status = subprocess.run(
-        [EXECUTABLE, 'status', f'--node={node}'],
+        [executable, 'status', f'--node={node}'],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     try:
@@ -92,11 +83,11 @@ def get_node_status(node: str):
         raise key
 
 
-def get_tx_info(hash_id: str, node: str, chain_id: str):
+def get_tx_info(executable: str, hash_id: str, node: str, chain_id: str):
     """
     dymd query tx <tx-hash> <node> <chain-id>
     """
-    tx_dymension = subprocess.run([EXECUTABLE, 'query', 'tx',
+    tx_dymension = subprocess.run([executable, 'query', 'tx',
                               f'{hash_id}',
                               f'--node={node}',
                               f'--chain-id={chain_id}',
@@ -132,7 +123,7 @@ def get_tx_info(hash_id: str, node: str, chain_id: str):
         raise KeyError from err
 
 
-def tx_send(request: dict):
+def tx_send(executable: str, request: dict):
     """
     The request dictionary must include these keys:
     - "sender"
@@ -146,7 +137,7 @@ def tx_send(request: dict):
                        --keyring-backend=test -y
 
     """
-    tx_dymension = subprocess.run([EXECUTABLE, 'tx', 'bank', 'send',
+    tx_dymension = subprocess.run([executable, 'tx', 'bank', 'send',
                               f'{request["sender"]}',
                               f'{request["recipient"]}',
                               f'{request["amount"]}',

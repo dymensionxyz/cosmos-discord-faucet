@@ -2,32 +2,32 @@
 
 verbose        = "yes"
 
-[dymension]
-prefix         = "dym"
-denomination   = "udym"
-executable     = "dymd"
-
 [testnets]
     [testnets.c-35]
-    node_url = "http://localhost:26657"
-    chain_id = "hub"
-    faucet_address = "dym1teld7n32u5ll3kptw5jz5zrwy6jxs8702huxtu"
-    block_explorer_tx = "https://explorer.theta-testnet.polypore.xyz/transactions/"
+    node_url = "http://localhost:36657"
+    chain_id = "local-testnet"
+    faucet_address = "dym1gcx0e7vhdqjsjj3jnpy6twlna8nfhqrzf76zwa"
+    executable = "dymd"
+    address_prefix = "dym"
+    denom = "udym"
+    block_explorer_tx = ""
     daily_cap = "1000"
     amount_to_send = "100"
     tx_fees = "10"
 
-    [testnets.devnet]
-    node_url = "http://localhost:26657"
-    chain_id = "hub"
-    faucet_address = "dym1teld7n32u5ll3kptw5jz5zrwy6jxs8702huxtu"
+    [testnets.rollapp-a]
+    node_url = "http://localhost:26667"
+    chain_id = "rollapp"
+    faucet_address = "rol1duet48wzj44evxe9pv627u6jpcf2mvzucjke0x"
+    executable = "rollappd"
+    address_prefix = "rol"
+    denom = "urap"
     block_explorer_tx = ""
     daily_cap = "1000"
     amount_to_send = "20"
     tx_fees = "10"
 
 [discord]
-bot_token = ""
 # comma separated list of channels
 channels_to_listen = "bere"
 # how often user can request tokens from faucet (seconds)
