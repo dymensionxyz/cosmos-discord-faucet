@@ -11,15 +11,6 @@ import subprocess
 import logging
 import toml
 
-# Load config
-config = toml.load('config.toml')
-
-try:
-    EXECUTABLE = config['dymension']['executable']
-except KeyError as key:
-    logging.error('Key not found in config: %s', key)
-    raise key
-
 def check_address(executable: str, address: str):
     """
     dymd keys parse <address>
