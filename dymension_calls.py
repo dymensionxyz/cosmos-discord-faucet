@@ -146,11 +146,7 @@ def tx_send(executable: str, request: dict):
                        --keyring-backend=test -y
 
     """
-<<<<<<< HEAD
-    tx_dymension = subprocess.run([EXECUTABLE, 'tx', 'bank', 'send',
-=======
     tx_dymension = subprocess.run([executable, 'tx', 'bank', 'send',
->>>>>>> 269c064 (Changed the bot support multiple blockhains.)
                               f'{request["sender"]}',
                               f'{request["recipient"]}',
                               f'{request["amount"]}',
