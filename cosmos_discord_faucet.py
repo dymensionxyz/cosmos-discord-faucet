@@ -12,6 +12,7 @@ from tabulate import tabulate
 import aiofiles as aiof
 import toml
 import discord
+import os
 import dymension_calls as dymension
 
 # Turn Down Discord Logging
@@ -26,12 +27,10 @@ logging.basicConfig(level=logging.INFO,
 config = toml.load('config.toml')
 
 try:
-    ADDRESS_PREFIX = config['dymension']['prefix']
     REQUEST_TIMEOUT = int(config['discord']['request_timeout'])
-    DISCORD_TOKEN = str(config['discord']['bot_token'])
+    DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
     LISTENING_CHANNELS = list(
         config['discord']['channels_to_listen'].split(','))
-    DENOM = str(config['dymension']['denomination'])
     testnets = config['testnets']
     for net in testnets:
         testnets[net]['name'] = net
@@ -76,12 +75,13 @@ async def get_faucet_balance(testnet: dict):
     Returns the udym balance
     """
     balances = dymension.get_balance(
+        testnet["executable"],
         address=testnet['faucet_address'],
         node=testnet['node_url'],
         chain_id=testnet['chain_id'])
     for balance in balances:
-        if balance['denom'] == 'udym':
-            return balance['amount']+'udym'
+        if balance['denom'] == testnet['denom']:
+            return balance['amount']+testnet['denom']
 
 
 async def balance_request(message, testnet: dict):
@@ -99,10 +99,11 @@ async def balance_request(message, testnet: dict):
 
     try:
         # check address is valid
-        result = dymension.check_address(address)
-        if result['human'] == ADDRESS_PREFIX:
+        result = dymension.check_address(testnet["executable"], address)
+        if result['human'] == testnet["adddress_prefix"]:
             try:
                 balance = dymension.get_balance(
+                    testnet["executable"],
                     address=address,
                     node=testnet["node_url"],
                     chain_id=testnet["chain_id"])
@@ -112,7 +113,7 @@ async def balance_request(message, testnet: dict):
             except Exception:
                 reply = '❗ dymension could not handle your request'
         else:
-            reply = f'❗ Expected `{ADDRESS_PREFIX}` prefix'
+            reply = f'❗ Expected `{testnet["adddress_prefix"]}` prefix'
     except Exception:
         reply = '❗ dymension could not verify the address'
     await message.reply(reply)
@@ -124,8 +125,9 @@ async def faucet_status(message, testnet: dict):
     """
     reply = ''
     try:
-        node_status = dymension.get_node_status(node=testnet['node_url'])
+        node_status = dymension.get_node_status(testnet["executable"], node=testnet['node_url'])
         balance = dymension.get_balance(
+            testnet["executable"],
             address=testnet['faucet_address'],
             node=testnet['node_url'],
             chain_id=testnet['chain_id'])
@@ -156,6 +158,7 @@ async def transaction_info(message, testnet: dict):
     if len(hash_id) == 64:
         try:
             res = dymension.get_tx_info(
+                testnet["executable"],
                 hash_id=hash_id,
                 node=testnet['node_url'],
                 chain_id=testnet['chain_id'])
@@ -263,9 +266,9 @@ async def token_request(message, testnet: dict):
     # Check address
     try:
         # check address is valid
-        result = dymension.check_address(address)
-        if result['human'] != ADDRESS_PREFIX:
-            await message.reply(f'❗ Expected `{ADDRESS_PREFIX}` prefix')
+        result = dymension.check_address(testnet["executable"], address)
+        if result['human'] != testnet["address_prefix"]:
+            await message.reply(f'❗ Expected `{testnet["adddress_prefix"]}` prefix')
             return
     except Exception:
         await message.reply('❗ dymension could not verify the address')
@@ -280,13 +283,13 @@ async def token_request(message, testnet: dict):
         if approved:
             request = {'sender': testnet['faucet_address'],
                        'recipient': address,
-                       'amount': testnet['amount_to_send'] + DENOM,
-                       'fees': testnet['tx_fees'] + DENOM,
+                       'amount': testnet['amount_to_send'] + testnet["denom"],
+                       'fees': testnet['tx_fees'] + testnet["denom"],
                        'chain_id': testnet['chain_id'],
                        'node': testnet['node_url']}
             try:
                 # Make dymension call and send the response back
-                transfer = dymension.tx_send(request)
+                transfer = dymension.tx_send(testnet["executable"], request)
                 logging.info('%s requested tokens for %s in %s',
                              requester, address, testnet['name'])
                 now = datetime.datetime.now()
@@ -298,7 +301,7 @@ async def token_request(message, testnet: dict):
                 balance = await get_faucet_balance(testnet)
                 await save_transaction_statistics(f'{now.isoformat(timespec="seconds")},'
                                                   f'{testnet["name"]},{address},'
-                                                  f'{testnet["amount_to_send"] + DENOM},'
+                                                  f'{testnet["amount_to_send"] + testnet["denom"]},'
                                                   f'{transfer},'
                                                   f'{balance}')
             except Exception:
