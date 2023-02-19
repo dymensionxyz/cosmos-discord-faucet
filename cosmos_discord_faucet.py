@@ -17,7 +17,7 @@ import dymension_calls as dymension
 
 # Turn Down Discord Logging
 disc_log = logging.getLogger('discord')
-disc_log.setLevel(logging.CRITICAL)
+disc_log.setLevel(logging.INFO)
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO,
@@ -100,7 +100,7 @@ async def balance_request(message, testnet: dict):
     try:
         # check address is valid
         result = dymension.check_address(testnet["executable"], address)
-        if result['human'] == testnet["adddress_prefix"]:
+        if result['human'] == testnet["address_prefix"]:
             try:
                 balance = dymension.get_balance(
                     testnet["executable"],
