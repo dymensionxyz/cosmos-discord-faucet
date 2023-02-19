@@ -67,7 +67,7 @@ def get_node_status(executable: str, node: str):
 
     try:
         status.check_returncode()
-        status = json.loads(status.stderr)
+        status = json.loads(status.stdout)
         node_status = {}
         node_status['moniker'] = status['NodeInfo']['moniker']
         node_status['chain'] = status['NodeInfo']['network']
