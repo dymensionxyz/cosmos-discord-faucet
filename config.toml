@@ -1,6 +1,6 @@
 # Cosmos Discord Faucet configuration
 
-verbose        = "yes"
+verbose = "yes"
 
 hub_rpc = "http://localhost:36657"
 hub_executable = "dymd"
@@ -14,12 +14,12 @@ amount_to_send_evm = "1000000000000000000"
 daily_cap = "100000000"
 daily_cap_evm = "100000000000000000000"
 tx_fees = "10"
-block_explorer_tx="https://dymscan.com/hub/transaction/"
+block_explorer_tx = "https://dymscan.com/hub/transaction/"
+token_requests_cap = 1
+hub_token_requests_cap = 2
 
 [discord]
 # comma separated list of channels
 channels_to_listen = "bere"
 # how often user can request tokens from faucet (seconds)
-# 10800 = 3  hours
-# 86400 = 24 hours
-request_timeout    = "86400"
+request_timeout = "604800"
