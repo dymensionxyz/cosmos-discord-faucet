@@ -35,7 +35,9 @@ try:
     AMOUNT_TO_SEND = int(config['amount_to_send'])
     AMOUNT_TO_SEND_EVM = int(config['amount_to_send_evm'])
     DAILY_CAP = int(config['daily_cap'])
+    TOKEN_REQUESTS_CAP = int(config['token_requests_cap'])
     HUB_CHAIN_ID = config['hub_chain_id']
+    HUB_TOKEN_REQUESTS_CAP = int(config['hub_token_requests_cap'])
     DAILY_CAP_EVM = int(config['daily_cap_evm'])
     TX_FEES = int(config['tx_fees'])
     BLOCK_EXPLORER_TX = config['block_explorer_tx']
@@ -106,6 +108,12 @@ async def get_and_validate_network_id_from_params(message, param_index):
         await message.reply(f'{WARNING_EMOJI} Missing network ID')
     else:
         return network_id
+
+
+def get_token_requests_cap(network_id):
+    if network_id == HUB_CHAIN_ID:
+        return HUB_TOKEN_REQUESTS_CAP
+    return TOKEN_REQUESTS_CAP
 
 
 async def save_transaction_statistics(transaction: str):
@@ -187,8 +195,12 @@ def on_time_blocked(network_id: str, requester: str, message_timestamp):
     Returns False, reply if either of them is still on time-out; msg is the reply to the requester
     """
     if requester in ACTIVE_REQUESTS[network_id]:
-        check_time = ACTIVE_REQUESTS[network_id][requester]
-        if check_time > message_timestamp:
+        request = ACTIVE_REQUESTS[network_id][requester]
+        check_time = request['check_time']
+        requests_count = request['requests_count']
+        token_requests_cap = get_token_requests_cap(network_id)
+
+        if check_time > message_timestamp and requests_count >= token_requests_cap:
             seconds_left = check_time - message_timestamp
             minutes_left = seconds_left / 60
             if minutes_left > 120:
@@ -196,10 +208,20 @@ def on_time_blocked(network_id: str, requester: str, message_timestamp):
             else:
                 wait_time = str(int(minutes_left)) + ' minutes'
             timeout_in_hours = int(REQUEST_TIMEOUT / 60 / 60)
-            reply = f'{REJECT_EMOJI} You can request coins no more than once every ' \
+
+            how_many = 'once'
+            if token_requests_cap == 2:
+                how_many = 'twice'
+            elif token_requests_cap > 2:
+                how_many = f'{token_requests_cap} times'
+            reply = f'{REJECT_EMOJI} You can request coins no more than {how_many} every ' \
                     f'{timeout_in_hours} hours, please try again in {wait_time}'
             return False, reply
-        del ACTIVE_REQUESTS[network_id][requester]
+
+        if check_time > message_timestamp:
+            request['requests_count'] += 1
+        else:
+            del ACTIVE_REQUESTS[network_id][requester]
 
     return True, None
 
@@ -219,8 +241,10 @@ def check_time_limits(network_id: str, requester: str, address: str):
         return approved, reply
 
     if requester not in ACTIVE_REQUESTS[network_id] and address not in ACTIVE_REQUESTS[network_id]:
-        ACTIVE_REQUESTS[network_id][requester] = message_timestamp + REQUEST_TIMEOUT
-        ACTIVE_REQUESTS[network_id][address] = message_timestamp + REQUEST_TIMEOUT
+        ACTIVE_REQUESTS[network_id][requester] = \
+            {"check_time": message_timestamp + REQUEST_TIMEOUT, "requests_count": 1}
+        ACTIVE_REQUESTS[network_id][address] = \
+            {"check_time": message_timestamp + REQUEST_TIMEOUT, "requests_count": 1}
 
     return True, None
 
@@ -350,7 +374,8 @@ async def token_request(message):
         if BLOCK_EXPLORER_TX:
             await message.reply(f'{APPROVE_EMOJI}  <{BLOCK_EXPLORER_TX}{transfer}>')
         else:
-            await message.reply(f'{APPROVE_EMOJI} Your tx is approved. To view your tx status, type `$tx_info {transfer}`')
+            await message.reply(
+                f'{APPROVE_EMOJI} Your tx is approved. To view your tx status, type `$tx_info {transfer}`')
 
         # Get faucet balances and save to transaction log
         balances = dymension.get_balances(FAUCET_ADDRESS)
