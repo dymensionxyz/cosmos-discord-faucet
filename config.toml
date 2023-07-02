@@ -2,30 +2,19 @@
 
 verbose        = "yes"
 
-[testnets]
-    [testnets.c-35]
-    node_url = "http://localhost:36657"
-    chain_id = "local-testnet"
-    faucet_address = "dym1gcx0e7vhdqjsjj3jnpy6twlna8nfhqrzf76zwa"
-    executable = "dymd"
-    address_prefix = "dym"
-    denom = "udym"
-    block_explorer_tx = ""
-    daily_cap = "1000"
-    amount_to_send = "100"
-    tx_fees = "10"
-
-    [testnets.rollapp-a]
-    node_url = "http://localhost:26667"
-    chain_id = "rollapp"
-    faucet_address = "rol1duet48wzj44evxe9pv627u6jpcf2mvzucjke0x"
-    executable = "rollappd"
-    address_prefix = "rol"
-    denom = "urap"
-    block_explorer_tx = ""
-    daily_cap = "1000"
-    amount_to_send = "20"
-    tx_fees = "10"
+hub_rpc = "http://localhost:36657"
+hub_executable = "dymd"
+hub_denom = "udym"
+hub_chain_id = "dymension_100-1"
+network_name = "dymension"
+faucet_address = "dym1mtjexky4wx0wjnzdne3z2f8acy5epj4mc79r5n"
+address_prefix = "dym1"
+amount_to_send = "1000000"
+amount_to_send_evm = "1000000000000000000"
+daily_cap = "100000000"
+daily_cap_evm = "100000000000000000000"
+tx_fees = "10"
+block_explorer_tx="https://dymscan.com/hub/transaction/"
 
 [discord]
 # comma separated list of channels
