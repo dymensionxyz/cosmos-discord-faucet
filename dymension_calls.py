@@ -166,6 +166,7 @@ def tx_send(sender: str, recipient: str, amount: str, fees: int):
         '-y'
     ])
     try:
+        logging.info("Tx Send response %s", response)
         return response['txhash']
     except (TypeError, KeyError) as err:
         logging.critical('Could not read %s in tx response', err)
