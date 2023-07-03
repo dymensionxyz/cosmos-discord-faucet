@@ -55,18 +55,16 @@ WARNING_EMOJI = '❗'
 GENERIC_ERROR_MESSAGE = f'{WARNING_EMOJI} dymension could not handle your request'
 
 help_msg = '**List of available commands:**\n' \
-           '1. Request tokens through the faucet:\n' \
+           '1. Request ‘network-id’ of all of the faucet’s optional networks:\n' \
+           f'`$request_networks`\n\n' \
+           '2. Request tokens through the faucet:\n' \
            f'`$request [dymension address] [network-id]`\n\n' \
-           '2. Request the faucet and node status:\n' \
+           '3. Request the faucet and node status:\n' \
            f'`$faucet_status`\n\n' \
-           '3. Request the dymension faucet address: \n' \
-           f'`$faucet_address`\n\n' \
            '4. Request information for a specific transaction:\n' \
            f'`$tx_info [transaction hash ID]`\n\n' \
-           '5. Request the address balance:\n' \
-           f'`$balances [dymension address]`\n\n' \
-           '6. Request all the optional networks:\n' \
-           f'`$request_networks`\n'
+           '5. Request the address balances:\n' \
+           f'`$balances [dymension address] <optional:network-id>`\n'
 
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
@@ -98,13 +96,13 @@ async def get_and_validate_address_from_params(message, param_index):
         return address
 
 
-async def get_and_validate_network_id_from_params(message, param_index):
+async def get_and_validate_network_id_from_params(message, param_index, throw_error_if_missing=True):
     """
     Fetch and validate the network_id from the specified message
     """
     network_id = get_param_value(message, param_index)
 
-    if not network_id:
+    if throw_error_if_missing and not network_id:
         await message.reply(f'{WARNING_EMOJI} Missing network ID')
     else:
         return network_id
@@ -134,6 +132,15 @@ async def balances_request(message):
         if not address:
             return
         balances = dymension.get_balances(address)
+        network_id = await get_and_validate_network_id_from_params(message, 1, False)
+        if network_id:
+            network_denom_list = dymension.fetch_network_denom_list()
+            network_denom = next((item for item in network_denom_list if item['network_id'] == network_id), None)
+            if network_denom:
+                balances = list(filter(lambda balance: balance['denom'] == network_denom['denom'], balances))
+            else:
+                balances = []
+
         if len(balances) == 0:
             await message.reply(f'No balances for address `{address}`')
         else:
@@ -253,7 +260,7 @@ def is_evm_network(network_id: str):
     """
     Returns whether the specified network is evm related
     """
-    return HUB_CHAIN_ID != network_id and bool(re.search("^[^_-]+_[0-9]+[_-][0-9]+$", network_id))
+    return bool(re.search("^[^_-]+_[0-9]+[_-][0-9]+$", network_id))
 
 
 def get_amount_to_send(network_id: str):
@@ -417,9 +424,7 @@ async def on_message(message):
         await message.reply('The Vega testnet is no longer active as of April 14, 2022. Please use Theta instead.')
         return
 
-    if message.content.startswith('$faucet_address'):
-        await message.reply(FAUCET_ADDRESS)
-    elif message.content.startswith('$balances'):
+    if message.content.startswith('$balances'):
         await balances_request(message)
     elif message.content.startswith('$faucet_status'):
         await faucet_status(message)
