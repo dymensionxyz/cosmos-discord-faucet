@@ -39,6 +39,6 @@ verbose = "yes"
     token_requests_cap = 2
     ibc_token_requests_cap = 1
     ibc_enabled = true
-    channels_to_listen = ""
+    channels_to_listen = "🚰・devnet-faucet"
     request_timeout = "604800"
 

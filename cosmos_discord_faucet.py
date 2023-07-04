@@ -29,7 +29,7 @@ try:
     ENVS = list(map(lambda env: FaucetEnv(env, **envs[env]), envs))
     DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
     ACTIVE_REQUESTS = {env: {} for env in envs}
-    DENOMS_DAY_TALLY = {env: {} for env in envs}
+    NETWORKS_DAY_TALLY = {env: {} for env in envs}
 except KeyError as key:
     logging.critical('Key could not be found: %s', key)
     sys.exit()
@@ -48,12 +48,12 @@ def get_help_message(env: FaucetEnv):
     message_index = 1
 
     if env.ibc_enabled:
-        message += f'{message_index}. Request the the faucet’s optional tokens:\n`$request_tokens`\n\n'
+        message += f'{message_index}. Lists all tokens available in the faucet:\n`$faucet_tokens`\n\n'
         message_index += 1
 
     message += f'{message_index}. Request tokens through the faucet:\n'
     if env.ibc_enabled:
-        message += f'`$request [{env.network_name} address] <optional:denom>`\n\n'
+        message += f'`$request [{env.network_name} address] <optional:network-id>`\n\n'
     else:
         message += f'`$request [address]`\n\n'
     message_index += 1
@@ -66,7 +66,7 @@ def get_help_message(env: FaucetEnv):
 
     message += f'{message_index}. Request the address balance:\n'
     if env.ibc_enabled:
-        message += f'`$balance [{env.network_name} address] <optional:denom>`\n'
+        message += f'`$balance [{env.network_name} address] <optional:network-id>`\n'
     else:
         message += f'`$balance [address]`\n'
 
@@ -118,15 +118,26 @@ async def balance_request(env: FaucetEnv, message):
             return
         balances = dymension.get_balances(env, address)
 
-        denom = get_param_value(message, 1)
-        if not denom or not env.ibc_enabled:
-            denom = env.node_denom
+        denom = env.node_denom
+        network_id = get_param_value(message, 1)
+        if env.ibc_enabled and network_id and network_id != env.node_chain_id:
+            network_denom_list = dymension.fetch_network_denom_list(env, original_denom=True)
+            network_denom = next((item for item in network_denom_list if item['network_id'] == network_id), None)
+            if network_denom:
+                denom = network_denom['original_denom']
+            else:
+                denom = None
 
-        balance = next((balance for balance in balances if balance['denom'] == denom), None)
-        if not balance:
+        if denom:
+            balances = list(filter(lambda balance: balance['original_denom'] == denom, balances))
+        else:
+            balances = []
+
+        if len(balances) == 0:
             await message.reply(f'No balance for address `{address}`')
         else:
-            await message.reply(f'Balance for address `{address}`:\n```{tabulate([balance], floatfmt=",.0f")}\n```\n')
+            balances = [{field: entry[field] for field in ["denom", "amount"]} for entry in balances]
+            await message.reply(f'Balance for address `{address}`:\n```{tabulate(balances, floatfmt=",.0f")}\n```\n')
 
     except Exception as error:
         logging.error('Balance request failed: %s', error)
@@ -195,13 +206,13 @@ async def get_tokens(env: FaucetEnv, message):
         return
 
 
-def on_time_blocked(env: FaucetEnv, denom: str, network_id: str, requester: str, message_timestamp):
+def on_time_blocked(env: FaucetEnv, network_id: str, requester: str, message_timestamp):
     """
     Returns True, None if the given requester are not time-blocked for the specified network
     Returns False, reply if either of them is still on time-out; msg is the reply to the requester
     """
-    if requester in ACTIVE_REQUESTS[env.key][denom]:
-        request = ACTIVE_REQUESTS[env.key][denom][requester]
+    if requester in ACTIVE_REQUESTS[env.key][network_id]:
+        request = ACTIVE_REQUESTS[env.key][network_id][requester]
         check_time = request['check_time']
         requests_count = request['requests_count']
         token_requests_cap = env.get_token_requests_cap(network_id)
@@ -220,68 +231,68 @@ def on_time_blocked(env: FaucetEnv, denom: str, network_id: str, requester: str,
                 how_many = 'twice'
             elif token_requests_cap > 2:
                 how_many = f'{token_requests_cap} times'
-            reply = f'{REJECT_EMOJI} You can request `{denom}` tokens no more than {how_many} every ' \
+            reply = f'{REJECT_EMOJI} You can request `{network_id}` tokens no more than {how_many} every ' \
                     f'{timeout_in_hours} hours, please try again in {wait_time}'
             return False, reply
 
         if check_time > message_timestamp:
             request['requests_count'] += 1
         else:
-            del ACTIVE_REQUESTS[env.key][denom][requester]
+            del ACTIVE_REQUESTS[env.key][network_id][requester]
 
     return True, None
 
 
-def check_time_limits(env: FaucetEnv, denom: str, network_id: str, requester: str, address: str):
+def check_time_limits(env: FaucetEnv, network_id: str, requester: str, address: str):
     """
     Returns True, None if the given requester and address are not time-blocked for the specified network
     Returns False, reply if either of them is still on time-out; msg is the reply to the requester
     """
     message_timestamp = time.time()
-    approved, reply = on_time_blocked(env, denom, network_id, requester, message_timestamp)
+    approved, reply = on_time_blocked(env, network_id, requester, message_timestamp)
     if not approved:
         return approved, reply
 
-    approved, reply = on_time_blocked(env, denom, network_id, address, message_timestamp)
+    approved, reply = on_time_blocked(env, network_id, address, message_timestamp)
     if not approved:
         return approved, reply
 
-    if requester not in ACTIVE_REQUESTS[env.key][denom] and address not in ACTIVE_REQUESTS[env.key][denom]:
-        ACTIVE_REQUESTS[env.key][denom][requester] = \
+    if requester not in ACTIVE_REQUESTS[env.key][network_id] and address not in ACTIVE_REQUESTS[env.key][network_id]:
+        ACTIVE_REQUESTS[env.key][network_id][requester] = \
             {"check_time": message_timestamp + env.request_timeout, "requests_count": 1}
-        ACTIVE_REQUESTS[env.key][denom][address] = \
+        ACTIVE_REQUESTS[env.key][network_id][address] = \
             {"check_time": message_timestamp + env.request_timeout, "requests_count": 1}
 
     return True, None
 
 
-def check_daily_cap(env: FaucetEnv, denom: str, network_id: str):
+def check_daily_cap(env: FaucetEnv, network_id: str):
     """
     Returns True if the faucet has not reached the daily cap for the specified network
     Returns False otherwise
     """
     delta = env.get_amount_to_send(network_id)
     today = datetime.datetime.today().date()
-    denom_day_tally = DENOMS_DAY_TALLY[env.key].get(denom, None)
-    if not denom_day_tally or today != denom_day_tally['active_day']:
+    network_day_tally = NETWORKS_DAY_TALLY[env.key].get(network_id, None)
+    if not network_day_tally or today != network_day_tally['active_day']:
         # The date has changed, reset the tally
-        DENOMS_DAY_TALLY[env.key][denom] = {'active_day': today, "day_tally": delta}
+        NETWORKS_DAY_TALLY[env.key][network_id] = {'active_day': today, "day_tally": delta}
         return True
 
     # Check tally
     daily_cap = env.get_daily_cap(network_id)
-    if denom_day_tally['day_tally'] + delta > daily_cap:
+    if network_day_tally['day_tally'] + delta > daily_cap:
         return False
 
-    denom_day_tally['day_tally'] += delta
+    network_day_tally['day_tally'] += delta
     return True
 
 
-def revert_daily_consume(env: FaucetEnv, denom: str, network_id: str):
-    denom_day_tally = DENOMS_DAY_TALLY[env.key].get(denom, None)
-    if denom_day_tally:
+def revert_daily_consume(env: FaucetEnv, network_id: str):
+    network_day_tally = NETWORKS_DAY_TALLY[env.key].get(network_id, None)
+    if network_day_tally:
         delta = env.get_amount_to_send(network_id)
-        denom_day_tally['day_tally'] -= delta
+        network_day_tally['day_tally'] -= delta
 
 
 async def token_request(env: FaucetEnv, message):
@@ -294,26 +305,25 @@ async def token_request(env: FaucetEnv, message):
         if not address:
             return
 
-        denom = get_param_value(message, 1)
-        if not denom:
-            denom = env.node_denom
+        network_id = get_param_value(message, 1)
+        if not network_id:
+            network_id = env.node_chain_id
 
-        if denom not in ACTIVE_REQUESTS[env.key]:
-            ACTIVE_REQUESTS[env.key][denom] = {}
+        if network_id not in ACTIVE_REQUESTS[env.key]:
+            ACTIVE_REQUESTS[env.key][network_id] = {}
 
         network_denom_list = dymension.fetch_network_denom_list(env, original_denom=True)
-        network_denom = next((item for item in network_denom_list if item['denom'] == denom), None)
+        network_denom = next((item for item in network_denom_list if item['network_id'] == network_id), None)
         if not network_denom:
             logging.info('%s requested $s tokens for %s but the faucet has no balance for this token',
-                         requester, denom, address)
-            await message.reply(f'The faucet has no balance for `{denom}`')
+                         requester, network_id, address)
+            await message.reply(f'The faucet has no balance for `{network_id}` tokens')
             return
 
         # Check whether the faucet has reached the daily cap
-        network_id = network_denom['network_id']
-        if not check_daily_cap(env, denom, network_id):
+        if not check_daily_cap(env, network_id):
             logging.info('%s requested $s tokens for %s but the daily cap has been reached',
-                         requester, denom, address)
+                         requester, network_id, address)
             await message.reply("Sorry, the daily cap for this faucet has been reached")
             return
 
@@ -324,10 +334,10 @@ async def token_request(env: FaucetEnv, message):
 
     try:
         # Check whether user or address have received tokens on this testnet
-        approved, reply = check_time_limits(env, denom, network_id, requester.id, address)
+        approved, reply = check_time_limits(env, network_id, requester.id, address)
         if not approved:
-            revert_daily_consume(env, denom, network_id)
-            logging.info('%s requested %s tokens for %s and was rejected', requester, denom, address)
+            revert_daily_consume(env, network_id)
+            logging.info('%s requested %s tokens for %s and was rejected', requester, network_id, address)
             await message.reply(reply)
             return
 
@@ -350,13 +360,13 @@ async def token_request(env: FaucetEnv, message):
         await save_transaction_statistics(
             f'{now.isoformat(timespec="seconds")},'
             f'{network_id},{address},'
-            f'{amount_to_send}{network_denom["denom"]},'
+            f'{amount_to_send}{network_denom["original_denom"]},'
             f'{transfer},'
             f'{balances}')
     except Exception as error:
-        del ACTIVE_REQUESTS[env.key][denom][requester.id]
-        del ACTIVE_REQUESTS[env.key][denom][address]
-        revert_daily_consume(env, denom, network_id)
+        del ACTIVE_REQUESTS[env.key][network_id][requester.id]
+        del ACTIVE_REQUESTS[env.key][network_id][address]
+        revert_daily_consume(env, network_id)
         logging.error('Token request failed: %s', error)
         await message.reply(GENERIC_ERROR_MESSAGE)
 
@@ -389,7 +399,7 @@ async def on_message(message):
             await faucet_status(env, message)
         elif message.content.startswith('$tx_info'):
             await transaction_info(env, message)
-        elif message.content.startswith('$request_tokens'):
+        elif message.content.startswith('$faucet_tokens'):
             await get_tokens(env, message)
         elif message.content.startswith('$request '):
             await token_request(env, message)

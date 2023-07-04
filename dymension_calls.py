@@ -68,7 +68,11 @@ def fetch_network_denom_list(env: FaucetEnv, original_denom=False):
     response = execute(env, ["query", "ibc-transfer", "denom-traces"])
     network_denom_list = list(map(
         lambda trace: fetch_denom_from_trace(env, trace, original_denom), response['denom_traces']))
-    fixed_list = [{"network_id": env.node_chain_id, "denom": env.node_denom}]
+
+    node_network_denom = {"network_id": env.node_chain_id, "denom": env.node_denom}
+    if original_denom:
+        node_network_denom['original_denom'] = env.node_denom
+    fixed_list = [node_network_denom]
 
     for network_denom in network_denom_list:
         exist_denom = next((item for item in fixed_list if item["denom"] == network_denom['denom']), None)
@@ -80,6 +84,7 @@ def fetch_network_denom_list(env: FaucetEnv, original_denom=False):
 
 def get_fixed_balance_denom(env: FaucetEnv, balance):
     denom = balance["denom"]
+    balance['original_denom'] = denom
     if denom.startswith('ibc/'):
         response = execute(env, ["query", "ibc-transfer", "denom-trace", denom])
         balance['denom'] = response['denom_trace']['base_denom']
