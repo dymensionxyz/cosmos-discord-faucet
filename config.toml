@@ -1,25 +1,44 @@
-# Cosmos Discord Faucet configuration
+# Discord Faucet configuration
+verbose = "yes"
 
-verbose        = "yes"
+[envs]
+    [envs.local]
+    node_rpc = "http://localhost:36657"
+    node_executable = "dymd"
+    node_denom = "udym"
+    node_chain_id = "dymension_100-1"
+    network_name = "dymension"
+    faucet_address = "dym1ctqdmjt7hntk2lxskgkphx73frt5h4f44ehjhx"
+    address_prefix = "dym1"
+    amount_to_send = "1000000"
+    amount_to_send_evm = "1000000000000000000"
+    daily_cap = "100000000"
+    daily_cap_evm = "100000000000000000000"
+    tx_fees = "10"
+    block_explorer_tx=""
+    token_requests_cap = 2
+    ibc_token_requests_cap = 1
+    ibc_enabled = true
+    channels_to_listen = "bere"
+    request_timeout = "604800"
 
-hub_rpc = "http://localhost:36657"
-hub_executable = "dymd"
-hub_denom = "udym"
-hub_chain_id = "dymension_100-1"
-network_name = "dymension"
-faucet_address = "dym1mtjexky4wx0wjnzdne3z2f8acy5epj4mc79r5n"
-address_prefix = "dym1"
-amount_to_send = "1000000"
-amount_to_send_evm = "1000000000000000000"
-daily_cap = "100000000"
-daily_cap_evm = "100000000000000000000"
-tx_fees = "10"
-block_explorer_tx="https://dymscan.com/hub/transaction/"
-token_requests_cap = 1
-hub_token_requests_cap = 2
+    [envs.devnet]
+    node_rpc = "https://dymension.devnet.rpc.silknodes.io:443"
+    node_executable = "dymd"
+    node_denom = "udym"
+    node_chain_id = "devnet_304-1"
+    network_name = "dymension"
+    faucet_address = "dym12ad4lux36lta7d75v2w6je2y386y9s5xp658pz"
+    address_prefix = "dym1"
+    amount_to_send = "1000000"
+    amount_to_send_evm = "1000000000000000000"
+    daily_cap = "100000000"
+    daily_cap_evm = "100000000000000000000"
+    tx_fees = "10"
+    block_explorer_tx=""
+    token_requests_cap = 2
+    ibc_token_requests_cap = 1
+    ibc_enabled = true
+    channels_to_listen = "🚰・devnet-faucet"
+    request_timeout = "604800"
 
-[discord]
-# comma separated list of channels
-channels_to_listen = "bere"
-# how often user can request tokens from faucet (seconds)
-request_timeout = "604800"
