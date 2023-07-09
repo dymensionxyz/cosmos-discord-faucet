@@ -27,6 +27,7 @@ envs = config['envs']
 
 try:
     ENVS = list(map(lambda env: FaucetEnv(env, **envs[env]), envs))
+    CORE_TEAM_ROLE_ID = config['core_team_role_id']
     DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
     ACTIVE_REQUESTS = {env: {} for env in envs}
     NETWORKS_DAY_TALLY = {env: {} for env in envs}
@@ -334,9 +335,14 @@ async def token_request(env: FaucetEnv, message):
         await message.reply(GENERIC_ERROR_MESSAGE)
         return
 
+    core_team_role = discord.utils.get(requester.guild.roles, id=CORE_TEAM_ROLE_ID)
+    is_core_team = core_team_role in requester.roles
+
     try:
         # Check whether user or address have received tokens on this testnet
-        approved, reply = check_time_limits(env, network_id, requester.id, address)
+        approved, reply = is_core_team, ''
+        if not approved:
+            approved, reply = check_time_limits(env, network_id, requester, address)
         if not approved:
             revert_daily_consume(env, network_id)
             logging.info('%s requested %s tokens for %s and was rejected', requester, network_id, address)
@@ -366,9 +372,10 @@ async def token_request(env: FaucetEnv, message):
             f'{transfer},'
             f'{balances}')
     except Exception as error:
-        del ACTIVE_REQUESTS[env.key][network_id][requester.id]
-        del ACTIVE_REQUESTS[env.key][network_id][address]
-        revert_daily_consume(env, network_id)
+        if not is_core_team:
+            del ACTIVE_REQUESTS[env.key][network_id][requester.id]
+            del ACTIVE_REQUESTS[env.key][network_id][address]
+            revert_daily_consume(env, network_id)
         logging.error('Token request failed: %s', error)
         await message.reply(GENERIC_ERROR_MESSAGE)
 

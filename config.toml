@@ -1,5 +1,6 @@
 # Discord Faucet configuration
 verbose = "yes"
+core_team_role_id = 957288205391118337
 
 [envs]
     [envs.local]
