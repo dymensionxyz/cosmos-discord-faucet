@@ -19,8 +19,9 @@ verbose = "yes"
     token_requests_cap = 2
     ibc_token_requests_cap = 1
     ibc_enabled = true
-    channels_to_listen = "bere"
+    channels_to_listen = ""
     request_timeout = "604800"
+    client_type = "COSMOS"
 
     [envs.devnet]
     node_rpc = "https://dymension.devnet.rpc.silknodes.io:443"
@@ -39,6 +40,25 @@ verbose = "yes"
     token_requests_cap = 2
     ibc_token_requests_cap = 1
     ibc_enabled = true
-    channels_to_listen = "🚰・devnet-faucet"
+    channels_to_listen = ""
     request_timeout = "604800"
+    client_type = "COSMOS"
+
+    [envs.avail]
+    node_ws = "wss://kate.avail.tools/ws"
+    node_denom = "uavl"
+    node_chain_id = "Avail Testnet_116d7474-0481-11ee-bc2a-7bfc086be54e"
+    network_name = "avail"
+    faucet_address = "5G6QN8usC4zDwcjTFCEngeuxcuoWEyxt71GWFUcfVZ3WH9Ln"
+    amount_to_send = "100000000000000"
+    daily_cap = "10000000000000000"
+    tx_fees = "10"
+    block_explorer_tx=""
+    token_requests_cap = 2
+    ibc_token_requests_cap = 1
+    ibc_enabled = false
+    channels_to_listen = "bere"
+    request_timeout = "604800"
+    client_type = "SUBSTRATE"
+
 
