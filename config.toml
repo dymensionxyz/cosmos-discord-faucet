@@ -24,7 +24,7 @@ core_team_role_id = 957288205391118337
     request_timeout = "604800"
 
     [envs.devnet]
-    node_rpc = "https://dymension.devnet.rpc.silknodes.io:443"
+    node_rpc = "https://dymension-devnet.rpc.silknodes.io:443"
     node_executable = "dymd"
     node_denom = "udym"
     node_chain_id = "devnet_304-1"
