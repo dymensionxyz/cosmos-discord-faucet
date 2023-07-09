@@ -89,10 +89,12 @@ async def get_and_validate_address_from_params(env: FaucetEnv, message, param_in
     Fetch and validate the address from the specified message
     """
     address = get_param_value(message, param_index)
-
     if not address:
         await message.reply(f'{WARNING_EMOJI} Missing address')
-    elif not address.startswith(env.address_prefix):
+        return
+
+    address = dymension.fetch_bech32_address(env, address)
+    if not address.startswith(env.address_prefix):
         await message.reply(f'{WARNING_EMOJI} Expected `{env.address_prefix}` prefix')
     else:
         dymension.check_address(env, address)

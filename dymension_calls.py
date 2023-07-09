@@ -6,14 +6,17 @@ dymd utility functions
 - tx bank send
 """
 import json
+import re
 import subprocess
 import logging
 
 from faucet_types import FaucetEnv
 
 
-def execute(env: FaucetEnv, params, chain_id=True, json_output=True):
-    params = [env.node_executable] + params + [f"--node={env.node_rpc}"]
+def execute(env: FaucetEnv, params, chain_id=True, json_output=True, json_node=True):
+    params = [env.node_executable] + params
+    if json_node:
+        params.append(f"--node={env.node_rpc}")
     if chain_id:
         params.append(f"--chain-id={env.node_chain_id}")
     if json_output:
@@ -21,7 +24,9 @@ def execute(env: FaucetEnv, params, chain_id=True, json_output=True):
     result = subprocess.run(params, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
         result.check_returncode()
-        return json.loads(result.stdout)
+        if json_output:
+            return json.loads(result.stdout)
+        return result.stdout
     except subprocess.CalledProcessError as cpe:
         output = str(result.stderr).split('\n', maxsplit=1)
         logging.error("Called Process Error: %s, stderr: %s", cpe, output)
@@ -62,6 +67,20 @@ def fetch_denom_from_trace(env: FaucetEnv, denom_trace, original_denom=False):
         result['original_denom'] = f'ibc/{denom_hash["hash"]}'
 
     return result
+
+
+def fetch_bech32_address(env: FaucetEnv, address: str) -> str:
+    if not address.startswith('0x'):
+        return address
+
+    response = execute(
+        env, ['debug', 'addr', address.removeprefix('0x')], chain_id=False, json_output=False, json_node=False)
+    match = re.search(r'Bech32 Acc: [^\s]+', response)
+    if match:
+        address = match.group().removeprefix('Bech32 Acc: ')
+        print(address)
+
+    return address
 
 
 def fetch_network_denom_list(env: FaucetEnv, original_denom=False):
@@ -110,6 +129,7 @@ def get_node_status(env: FaucetEnv):
     dymd status <node>
     """
     status = execute(env, ["status"], chain_id=False, json_output=False)
+    status = json.loads(status)
     try:
         node_status = {
             'moniker': status['NodeInfo']['moniker'],
