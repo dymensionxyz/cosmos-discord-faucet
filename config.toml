@@ -20,7 +20,7 @@ core_team_role_id = 957288205391118337
     token_requests_cap = 2
     ibc_token_requests_cap = 1
     ibc_enabled = true
-    channels_to_listen = "bere"
+    channels_to_listen = ""
     request_timeout = "604800"
 
     [envs.devnet]
@@ -29,7 +29,7 @@ core_team_role_id = 957288205391118337
     node_denom = "udym"
     node_chain_id = "devnet_304-1"
     network_name = "dymension"
-    faucet_address = "dym12ad4lux36lta7d75v2w6je2y386y9s5xp658pz"
+    faucet_address = "dym1lm90mcfyrcu8xngghxx4qq68q4pnppwtxeltcy"
     address_prefix = "dym1"
     amount_to_send = "1000000"
     amount_to_send_evm = "1000000000000000000"
@@ -40,6 +40,23 @@ core_team_role_id = 957288205391118337
     token_requests_cap = 2
     ibc_token_requests_cap = 1
     ibc_enabled = true
-    channels_to_listen = "🚰・devnet-faucet"
+    channels_to_listen = "bere"
+    request_timeout = "604800"
+
+    [envs.celestia]
+    node_rpc = "https://rpc-arabica-9.consensus.celestia-arabica.com:443"
+    node_executable = "celestia"
+    node_denom = "utia"
+    node_chain_id = "arabica-9"
+    network_name = "arabica-9"
+    faucet_address = "celestia1emd05tmxqy5z9mlccvudrmj8hnmds49t2le2r2"
+    address_prefix = "celestia1"
+    amount_to_send = "100000"
+    daily_cap = "10000000"
+    tx_fees = "10"
+    block_explorer_tx=""
+    token_requests_cap = 1
+    ibc_enabled = false
+    channels_to_listen = ""
     request_timeout = "604800"
 
