@@ -110,7 +110,7 @@ async def get_and_validate_address_from_params(client: FaucetClient, message, pa
         await message.reply(f'{WARNING_EMOJI} Missing address')
         return
 
-    address = dymension.fetch_bech32_address(env, address)
+    address = client.fetch_bech32_address(address)
     if not address.startswith(client.address_prefix):
         await message.reply(f'{WARNING_EMOJI} Expected `{client.address_prefix}` prefix')
     else:
@@ -168,11 +168,8 @@ async def faucet_status(client: FaucetClient, message):
     Provide node and faucet info
     """
     try:
-        print(11)
         node_status = client.get_node_status()
-        print(22)
         balances = client.get_balances(client.faucet_address)
-        print(33)
         if node_status and balances:
             await message.reply(
                 f'```\n'

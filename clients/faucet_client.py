@@ -111,6 +111,9 @@ class FaucetClient:
     def get_node_status(self) -> NodeStatus:
         pass
 
+    def fetch_bech32_address(self, address: str) -> str:
+        pass
+
     def check_address(self, address: str):
         pass
 

@@ -1,3 +1,4 @@
+import re
 import subprocess
 import json
 import logging
@@ -8,8 +9,10 @@ from clients.faucet_client import FaucetClient, Balance, NodeStatus, NetworkDeno
 
 class CosmosClient(FaucetClient):
 
-    def execute(self, params, chain_id=True, json_output=True):
-        params = [self.node_executable] + params + [f"--node={self.node_rpc}"]
+    def execute(self, params, chain_id=True, json_output=True, json_node=True):
+        params = [self.node_executable] + params
+        if json_node:
+            params.append(f"--node={self.node_rpc}")
         if chain_id:
             params.append(f"--chain-id={self.node_chain_id}")
         if json_output:
@@ -17,7 +20,11 @@ class CosmosClient(FaucetClient):
         result = subprocess.run(params, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         try:
             result.check_returncode()
-            return json.loads(result.stdout)
+            if json_output:
+                return json.loads(result.stdout)
+            if result.stdout:
+                return result.stdout
+            return result.stderr
         except subprocess.CalledProcessError as cpe:
             output = str(result.stderr).split('\n', maxsplit=1)
             logging.error("Called Process Error: %s, stderr: %s", cpe, output)
@@ -46,7 +53,7 @@ class CosmosClient(FaucetClient):
         dymd status <node>
         """
         status = self.execute(["status"], chain_id=False, json_output=False)
-        print("aaaaa", status)
+        status = json.loads(status)
         try:
             node_status = NodeStatus(
                 str(status['NodeInfo']['moniker']),
@@ -129,6 +136,18 @@ class CosmosClient(FaucetClient):
         except (TypeError, KeyError) as err:
             logging.critical('Could not read %s in tx response', err)
             raise err
+
+    def fetch_bech32_address(self, address: str) -> str:
+        if not address.startswith('0x'):
+            return address
+
+        response = self.execute(
+            ['debug', 'addr', address.removeprefix('0x')], chain_id=False, json_output=False, json_node=False)
+        match = re.search(r'Bech32 Acc: [^\s]+', response)
+        if match:
+            address = match.group().removeprefix('Bech32 Acc: ')
+
+        return address
 
     def get_tx_info(self, hash_id: str) -> TxInfo:
         """
