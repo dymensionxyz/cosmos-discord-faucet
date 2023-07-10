@@ -1,5 +1,6 @@
 # Discord Faucet configuration
 verbose = "yes"
+core_team_role_id = 957288205391118337
 
 [envs]
     [envs.local]
@@ -24,12 +25,12 @@ verbose = "yes"
     client_type = "COSMOS"
 
     [envs.devnet]
-    node_rpc = "https://dymension.devnet.rpc.silknodes.io:443"
+    node_rpc = "https://dymension-devnet.rpc.silknodes.io:443"
     node_executable = "dymd"
     node_denom = "udym"
     node_chain_id = "devnet_304-1"
     network_name = "dymension"
-    faucet_address = "dym12ad4lux36lta7d75v2w6je2y386y9s5xp658pz"
+    faucet_address = "dym1g8sf7w4cz5gtupa6y62h3q6a4gjv37pgefnpt5"
     address_prefix = "dym1"
     amount_to_send = "1000000"
     amount_to_send_evm = "1000000000000000000"
@@ -38,8 +39,9 @@ verbose = "yes"
     tx_fees = "10"
     block_explorer_tx=""
     token_requests_cap = 2
+    ibc_token_requests_cap = 1
     ibc_enabled = true
-    channels_to_listen = ""
+    channels_to_listen = "🚰・devnet-faucet"
     request_timeout = "604800"
     client_type = "COSMOS"
 
@@ -76,5 +78,7 @@ verbose = "yes"
     channels_to_listen = ""
     request_timeout = "604800"
     client_type = "SUBSTRATE"
+
+
 
 

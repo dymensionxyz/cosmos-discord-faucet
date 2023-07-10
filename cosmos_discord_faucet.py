@@ -43,6 +43,7 @@ def create_client(env_key) -> FaucetClient:
 
 try:
     CLIENTS = list(map(create_client, envs))
+    CORE_TEAM_ROLE_ID = config['core_team_role_id']
     DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
     ACTIVE_REQUESTS = {env: {} for env in envs}
     NETWORKS_DAY_TALLY = {env: {} for env in envs}
@@ -105,10 +106,12 @@ async def get_and_validate_address_from_params(client: FaucetClient, message, pa
     Fetch and validate the address from the specified message
     """
     address = get_param_value(message, param_index)
-
     if not address:
         await message.reply(f'{WARNING_EMOJI} Missing address')
-    elif not address.startswith(client.address_prefix):
+        return
+
+    address = dymension.fetch_bech32_address(env, address)
+    if not address.startswith(client.address_prefix):
         await message.reply(f'{WARNING_EMOJI} Expected `{client.address_prefix}` prefix')
     else:
         client.check_address(address)
@@ -353,9 +356,14 @@ async def token_request(client: FaucetClient, message):
         await message.reply(GENERIC_ERROR_MESSAGE)
         return
 
+    core_team_role = discord.utils.get(requester.guild.roles, id=CORE_TEAM_ROLE_ID)
+    is_core_team = core_team_role in requester.roles
+
     try:
         # Check whether user or address have received tokens on this testnet
-        approved, reply = check_time_limits(client, network_id, requester.id, address)
+        approved, reply = is_core_team, ''
+        if not approved:
+            approved, reply = check_time_limits(client, network_id, requester.id, address)
         if not approved:
             revert_daily_consume(client, network_id)
             logging.info('%s requested %s tokens for %s and was rejected', requester, network_id, address)
@@ -385,9 +393,10 @@ async def token_request(client: FaucetClient, message):
             f'{transfer},'
             f'{balances}')
     except Exception as error:
-        del ACTIVE_REQUESTS[client.key][network_id][requester.id]
-        del ACTIVE_REQUESTS[client.key][network_id][address]
-        revert_daily_consume(client, network_id)
+        if not is_core_team:
+            del ACTIVE_REQUESTS[client.key][network_id][requester.id]
+            del ACTIVE_REQUESTS[client.key][network_id][address]
+            revert_daily_consume(client, network_id)
         logging.error('Token request failed: %s', error)
         await message.reply(GENERIC_ERROR_MESSAGE)
 
