@@ -46,6 +46,7 @@ class CosmosClient(FaucetClient):
         dymd status <node>
         """
         status = self.execute(["status"], chain_id=False, json_output=False)
+        print("aaaaa", status)
         try:
             node_status = NodeStatus(
                 str(status['NodeInfo']['moniker']),

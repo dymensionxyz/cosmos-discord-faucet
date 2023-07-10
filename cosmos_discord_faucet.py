@@ -165,10 +165,11 @@ async def faucet_status(client: FaucetClient, message):
     Provide node and faucet info
     """
     try:
+        print(11)
         node_status = client.get_node_status()
-        print(node_status)
+        print(22)
         balances = client.get_balances(client.faucet_address)
-        print(balances)
+        print(33)
         if node_status and balances:
             await message.reply(
                 f'```\n'

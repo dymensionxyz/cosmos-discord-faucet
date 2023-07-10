@@ -38,9 +38,26 @@ verbose = "yes"
     tx_fees = "10"
     block_explorer_tx=""
     token_requests_cap = 2
-    ibc_token_requests_cap = 1
     ibc_enabled = true
     channels_to_listen = ""
+    request_timeout = "604800"
+    client_type = "COSMOS"
+
+    [envs.celestia]
+    node_rpc = "https://rpc-arabica-9.consensus.celestia-arabica.com:443"
+    node_executable = "celestia-appd"
+    node_denom = "utia"
+    node_chain_id = "arabica-9"
+    network_name = "arabica-9"
+    faucet_address = "celestia1emd05tmxqy5z9mlccvudrmj8hnmds49t2le2r2"
+    address_prefix = "celestia1"
+    amount_to_send = "100000"
+    daily_cap = "10000000"
+    tx_fees = "10"
+    block_explorer_tx=""
+    token_requests_cap = 1
+    ibc_enabled = false
+    channels_to_listen = "bere"
     request_timeout = "604800"
     client_type = "COSMOS"
 
@@ -54,10 +71,9 @@ verbose = "yes"
     daily_cap = "10000000000000000"
     tx_fees = "10"
     block_explorer_tx=""
-    token_requests_cap = 2
-    ibc_token_requests_cap = 1
+    token_requests_cap = 1
     ibc_enabled = false
-    channels_to_listen = "bere"
+    channels_to_listen = ""
     request_timeout = "604800"
     client_type = "SUBSTRATE"
 
