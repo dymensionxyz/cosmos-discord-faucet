@@ -142,6 +142,9 @@ async def balance_request(client: FaucetClient, message):
         if client.ibc_enabled and network_id and network_id != client.node_chain_id:
             network_denom_list = client.fetch_network_denom_list(original_denom=True)
             network_denom = next((item for item in network_denom_list if item.network_id == network_id), None)
+            if not network_denom:
+                network_denom_list = client.fetch_network_denom_list(original_denom=True, cache=False)
+                network_denom = next((item for item in network_denom_list if item.network_id == network_id), None)
             if network_denom:
                 denom = network_denom.original_denom
             else:
@@ -208,24 +211,6 @@ async def transaction_info(client: FaucetClient, message):
         await message.reply(GENERIC_ERROR_MESSAGE)
 
 
-async def get_tokens(client: FaucetClient, message):
-    """
-    Return all the optional tokens for faucet
-    """
-    try:
-        network_denom_list = client.fetch_network_denom_list()
-        if len(network_denom_list) == 0:
-            await message.reply(f'No available tokens')
-        else:
-            data = map(lambda item: {"network_id": item.network_id, "denom": item.denom}, network_denom_list)
-            await message.reply(f'```{tabulate(data, headers="keys")}```')
-
-    except Exception as error:
-        logging.error('Tokens request failed: %s', error)
-        await message.reply(GENERIC_ERROR_MESSAGE)
-        return
-
-
 def on_time_blocked(client: FaucetClient, network_id: str, requester: str, message_timestamp):
     """
     Returns True, None if the given requester are not time-blocked for the specified network
@@ -277,8 +262,8 @@ def check_time_limits(client: FaucetClient, network_id: str, requester: str, add
     if not approved:
         return approved, reply
 
-    if requester not in ACTIVE_REQUESTS[client.key][network_id] and address not in ACTIVE_REQUESTS[client.key][
-        network_id]:
+    if requester not in ACTIVE_REQUESTS[client.key][network_id]\
+            and address not in ACTIVE_REQUESTS[client.key][network_id]:
         ACTIVE_REQUESTS[client.key][network_id][requester] = \
             {"check_time": message_timestamp + client.request_timeout, "requests_count": 1}
         ACTIVE_REQUESTS[client.key][network_id][address] = \
@@ -336,14 +321,17 @@ async def token_request(client: FaucetClient, message):
         network_denom_list = client.fetch_network_denom_list(original_denom=True)
         network_denom = next((item for item in network_denom_list if item.network_id == network_id), None)
         if not network_denom:
-            logging.info('%s requested $s tokens for %s but the faucet has no balance for this token',
+            network_denom_list = client.fetch_network_denom_list(original_denom=True, cache=False)
+            network_denom = next((item for item in network_denom_list if item.network_id == network_id), None)
+        if not network_denom:
+            logging.info('%s requested %s tokens for %s but the faucet has no balance for this token',
                          requester, network_id, address)
             await message.reply(f'The faucet has no balance for `{network_id}` tokens')
             return
 
         # Check whether the faucet has reached the daily cap
         if not check_daily_cap(client, network_id):
-            logging.info('%s requested $s tokens for %s but the daily cap has been reached',
+            logging.info('%s requested %s tokens for %s but the daily cap has been reached',
                          requester, network_id, address)
             await message.reply("Sorry, the daily cap for this faucet has been reached")
             return
@@ -367,6 +355,17 @@ async def token_request(client: FaucetClient, message):
             await message.reply(reply)
             return
 
+        balances = client.get_balances(client.faucet_address)
+        network_denom_balance = \
+            next((balance for balance in balances if balance.original_denom == network_denom.original_denom), None)
+
+        if not network_denom_balance or \
+                (float(network_denom_balance.amount) < float(client.get_amount_to_send(network_id))):
+            revert_daily_consume(client, network_id)
+            logging.info('Faucet has no have %s balance', network_denom.original_denom)
+            await message.reply(f'Faucet is drained out - new {network_denom.denom} soon')
+            return
+
         # Make client call and send the response back
         original_denom = network_denom.original_denom or network_denom.denom
         amount_to_send = client.get_amount_to_send(network_id)
@@ -381,8 +380,7 @@ async def token_request(client: FaucetClient, message):
             await message.reply(
                 f'{APPROVE_EMOJI} Your tx is approved. To view your tx status, type `$tx_info {transfer}`')
 
-        # Get faucet balances and save to transaction log
-        balances = client.get_balances(client.faucet_address)
+        # save to transaction log
         await save_transaction_statistics(
             f'{now.isoformat(timespec="seconds")},'
             f'{network_id},{address},'
@@ -426,37 +424,10 @@ async def on_message(message):
             await faucet_status(client, message)
         elif message.content.startswith('$tx_info'):
             await transaction_info(client, message)
-        elif message.content.startswith('$faucet_tokens'):
-            await get_tokens(client, message)
         elif message.content.startswith('$request '):
             await token_request(client, message)
         else:
             await message.reply(get_help_message(client))
-
-    # try:
-    #     # substrate = SubstrateInterface(url="wss://kate.avail.tools/ws")
-    #     # result = substrate.query('System', 'Account', ['5G6QN8usC4zDwcjTFCEngeuxcuoWEyxt71GWFUcfVZ3WH9Ln'])
-    #     # balance = result.value['data']['free'] / 10 ** 18
-    #     # print(3333, balance)
-    #     #
-    #     # call = substrate.compose_call(
-    #     #     call_module='Balances',
-    #     #     call_function='transfer',
-    #     #     call_params={
-    #     #         'dest': '5FsNCrwCAoprtpJdX6zD9PfHz6refPpkf77LytS4dLoa7WeV',
-    #     #         'value': 10
-    #     #     }
-    #     # )
-    #     #
-    #     # keypair = Keypair.create_from_uri('//Alice')
-    #     # extrinsic = substrate.create_signed_extrinsic(call=call, keypair=keypair)
-    #     #
-    #     # receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    #     #
-    #     # print(f"Extrinsic '{receipt.extrinsic_hash}' sent and included in block '{receipt.block_hash}'")
-    #
-    # except Exception as error:
-    #     print(44444, error)
 
 
 discord_client.run(DISCORD_TOKEN)
