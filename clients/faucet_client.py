@@ -46,15 +46,16 @@ class FaucetClient:
             node_denom,
             node_chain_id,
             network_name,
-            faucet_address,
             amount_to_send,
             daily_cap,
             tx_fees,
-            block_explorer_tx,
             token_requests_cap,
             ibc_enabled,
             channels_to_listen,
             request_timeout,
+            block_explorer_tx="",
+            faucet_address="",
+            faucet_mnemonic_key="",
             ibc_token_requests_cap=0,
             amount_to_send_evm=0,
             daily_cap_evm=0,
@@ -71,6 +72,7 @@ class FaucetClient:
         self.node_chain_id = node_chain_id
         self.network_name = network_name
         self.faucet_address = faucet_address
+        self.faucet_mnemonic_key = faucet_mnemonic_key
         self.address_prefix = address_prefix
         self.amount_to_send = int(amount_to_send)
         self.amount_to_send_evm = int(amount_to_send_evm)
@@ -84,7 +86,7 @@ class FaucetClient:
         self.channels_to_listen = list(channels_to_listen.split(','))
         self.request_timeout = int(request_timeout)
 
-    def get_amount_to_send(self, network_id: str):
+    def get_amount_to_send(self, network_id: str) -> int:
         """
         Returns the amount_to_send according to the specified network
         """
@@ -117,7 +119,7 @@ class FaucetClient:
     def check_address(self, address: str):
         pass
 
-    def fetch_network_denom_list(self, original_denom=False) -> List[NetworkDenomPair]:
+    def fetch_network_denom_list(self, original_denom=False, cache=True) -> List[NetworkDenomPair]:
         pass
 
     def tx_send(self, sender: str, recipient: str, amount: str, fees: int) -> str:

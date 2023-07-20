@@ -8,6 +8,9 @@ from clients.faucet_client import FaucetClient, Balance, NodeStatus, NetworkDeno
 
 
 class CosmosClient(FaucetClient):
+    def __init__(self, key, **args):
+        super().__init__(key, **args)
+        self.NETWORK_DENOM_LIST: List[NetworkDenomPair] = []
 
     def execute(self, params, chain_id=True, json_output=True, json_node=True):
         params = [self.node_executable] + params
@@ -100,7 +103,10 @@ class CosmosClient(FaucetClient):
 
         return result
 
-    def fetch_network_denom_list(self, original_denom=False) -> List[NetworkDenomPair]:
+    def fetch_network_denom_list(self, original_denom=False, cache=True) -> List[NetworkDenomPair]:
+        if cache and len(self.NETWORK_DENOM_LIST) > 0:
+            return self.NETWORK_DENOM_LIST
+
         response = self.execute(["query", "ibc-transfer", "denom-traces"])
         network_denom_list = list(map(
             lambda trace: self.fetch_denom_from_trace(trace, original_denom), response['denom_traces']))
@@ -113,7 +119,8 @@ class CosmosClient(FaucetClient):
             if not exist_denom:
                 fixed_list.append(network_denom)
 
-        return fixed_list
+        self.NETWORK_DENOM_LIST = fixed_list
+        return self.NETWORK_DENOM_LIST
 
     def tx_send(self, sender: str, recipient: str, amount: str, fees: int) -> str:
         """
