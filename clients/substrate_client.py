@@ -51,16 +51,11 @@ class SubstrateClient(FaucetClient):
                 call_function='transfer',
                 call_params={'dest': recipient, 'value': 1000000000000000000}
             )
-            print(11111, self.keypair, recipient)
             extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.keypair, era={'period': 64})
-            print(22222, extrinsic)
             receipt = self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-            print(33333, receipt)
-
             print(f"Extrinsic '{receipt.extrinsic_hash}' sent and included in block '{receipt.block_hash}'")
             return "aaaa"
         except SubstrateRequestException as err:
-            print(444444, err)
             logging.critical('Failed to send tokens', err)
             raise err
     # """

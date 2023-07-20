@@ -64,10 +64,6 @@ def get_help_message(client: FaucetClient):
     message = '**List of available commands:**\n'
     message_index = 1
 
-    if client.ibc_enabled:
-        message += f'{message_index}. Lists all tokens available in the faucet:\n`$faucet_tokens`\n\n'
-        message_index += 1
-
     message += f'{message_index}. Request tokens through the faucet:\n'
     if client.ibc_enabled:
         message += f'`$request [{client.network_name} address] <optional:network-id>`\n\n'
