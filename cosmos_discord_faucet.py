@@ -6,6 +6,7 @@ import time
 import datetime
 import logging
 import sys
+import requests
 import aiofiles as aiof
 import toml
 import discord
@@ -26,6 +27,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(mess
 # Load config
 config = toml.load('config.toml')
 envs = config['envs']
+network_denoms_url = config['network_denoms_url']
 
 
 def create_client(env_key) -> FaucetClient:
@@ -136,13 +138,10 @@ async def balance_request(client: FaucetClient, message):
         denom = client.node_denom
         network_id = get_param_value(message, 1)
         if client.ibc_enabled and network_id and network_id != client.node_chain_id:
-            network_denom_list = client.fetch_network_denom_list(original_denom=True)
-            network_denom = next((item for item in network_denom_list if item.network_id == network_id), None)
-            if not network_denom:
-                network_denom_list = client.fetch_network_denom_list(original_denom=True, cache=False)
-                network_denom = next((item for item in network_denom_list if item.network_id == network_id), None)
+            response = requests.get(f'{network_denoms_url}?networkId={client.node_chain_id}&ibcNetworkId={network_id}')
+            network_denom = response.json()
             if network_denom:
-                denom = network_denom.original_denom
+                denom = network_denom['denom']
             else:
                 denom = None
 
@@ -258,7 +257,7 @@ def check_time_limits(client: FaucetClient, network_id: str, requester: str, add
     if not approved:
         return approved, reply
 
-    if requester not in ACTIVE_REQUESTS[client.key][network_id]\
+    if requester not in ACTIVE_REQUESTS[client.key][network_id] \
             and address not in ACTIVE_REQUESTS[client.key][network_id]:
         ACTIVE_REQUESTS[client.key][network_id][requester] = \
             {"check_time": message_timestamp + client.request_timeout, "requests_count": 1}
@@ -314,11 +313,12 @@ async def token_request(client: FaucetClient, message):
         if network_id not in ACTIVE_REQUESTS[client.key]:
             ACTIVE_REQUESTS[client.key][network_id] = {}
 
-        network_denom_list = client.fetch_network_denom_list(original_denom=True)
-        network_denom = next((item for item in network_denom_list if item.network_id == network_id), None)
-        if not network_denom:
-            network_denom_list = client.fetch_network_denom_list(original_denom=True, cache=False)
-            network_denom = next((item for item in network_denom_list if item.network_id == network_id), None)
+        if network_id != client.node_chain_id:
+            response = requests.get(f'{network_denoms_url}?networkId={client.node_chain_id}&ibcNetworkId={network_id}')
+            network_denom = response.json()
+        else:
+            network_denom = {"denom": client.node_denom, "baseDenom": client.node_denom}
+
         if not network_denom:
             logging.info('%s requested %s tokens for %s but the faucet has no balance for this token',
                          requester, network_id, address)
@@ -353,19 +353,18 @@ async def token_request(client: FaucetClient, message):
 
         balances = client.get_balances(client.faucet_address)
         network_denom_balance = \
-            next((balance for balance in balances if balance.original_denom == network_denom.original_denom), None)
+            next((balance for balance in balances if balance.original_denom == network_denom['denom']), None)
 
         if not network_denom_balance or \
                 (float(network_denom_balance.amount) < float(client.get_amount_to_send(network_id))):
             revert_daily_consume(client, network_id)
-            logging.info('Faucet has no have %s balance', network_denom.original_denom)
-            await message.reply(f'Faucet is drained out - new {network_denom.denom} soon')
+            logging.info('Faucet has no have %s balance', network_denom['denom'])
+            await message.reply(f'Faucet is drained out - new {network_denom["baseDenom"]} soon')
             return
 
         # Make client call and send the response back
-        original_denom = network_denom.original_denom or network_denom.denom
         amount_to_send = client.get_amount_to_send(network_id)
-        amount = f'{amount_to_send}{original_denom}'
+        amount = f'{amount_to_send}{network_denom["denom"]}'
         transfer = client.tx_send(client.faucet_address, address, amount, client.tx_fees)
         logging.info('%s requested %s tokens for %s', requester, network_id, address)
         now = datetime.datetime.now()
@@ -380,7 +379,7 @@ async def token_request(client: FaucetClient, message):
         await save_transaction_statistics(
             f'{now.isoformat(timespec="seconds")},'
             f'{network_id},{address},'
-            f'{amount_to_send}{network_denom.original_denom},'
+            f'{amount_to_send}{network_denom["denom"]},'
             f'{transfer},'
             f'{balances}')
     except Exception as error:
