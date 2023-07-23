@@ -8,9 +8,6 @@ from clients.faucet_client import FaucetClient, Balance, NodeStatus, NetworkDeno
 
 
 class CosmosClient(FaucetClient):
-    def __init__(self, key, **args):
-        super().__init__(key, **args)
-        self.NETWORK_DENOM_LIST: List[NetworkDenomPair] = []
 
     def execute(self, params, chain_id=True, json_output=True, json_node=True):
         params = [self.node_executable] + params
@@ -88,39 +85,6 @@ class CosmosClient(FaucetClient):
         except IndexError as index_error:
             logging.error('Parsing error on address check: %s', index_error)
             raise index_error
-
-    def fetch_denom_from_trace(self, denom_trace, original_denom=False) -> NetworkDenomPair:
-        path = denom_trace["path"]
-        base_denom = str(denom_trace["base_denom"])
-        path_parts = str(path).split("/")
-        client_state = \
-            self.execute(["query", "ibc", "channel", "client-state", "transfer", path_parts[len(path_parts) - 1]])
-        result = NetworkDenomPair(str(client_state["client_state"]["chain_id"]), base_denom)
-
-        if original_denom:
-            denom_hash = self.execute(["query", "ibc-transfer", "denom-hash", f'{path}/{base_denom}'])
-            result.original_denom = f'ibc/{denom_hash["hash"]}'
-
-        return result
-
-    def fetch_network_denom_list(self, original_denom=False, cache=True) -> List[NetworkDenomPair]:
-        if cache and len(self.NETWORK_DENOM_LIST) > 0:
-            return self.NETWORK_DENOM_LIST
-
-        response = self.execute(["query", "ibc-transfer", "denom-traces"])
-        network_denom_list = list(map(
-            lambda trace: self.fetch_denom_from_trace(trace, original_denom), response['denom_traces']))
-
-        node_network_denom = NetworkDenomPair(self.node_chain_id, self.node_denom, self.node_denom)
-        fixed_list = [node_network_denom]
-
-        for network_denom in network_denom_list:
-            exist_denom = next((item for item in fixed_list if item.denom == network_denom.denom), None)
-            if not exist_denom:
-                fixed_list.append(network_denom)
-
-        self.NETWORK_DENOM_LIST = fixed_list
-        return self.NETWORK_DENOM_LIST
 
     def tx_send(self, sender: str, recipient: str, amount: str, fees: int) -> str:
         """
