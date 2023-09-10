@@ -133,7 +133,6 @@ async def balance_request(client: FaucetClient, message):
         address = await get_and_validate_address_from_params(client, message, 0)
         if not address:
             return
-        balances = client.get_balances(address)
 
         denom = client.node_denom
         network_id = get_param_value(message, 1)
@@ -146,14 +145,14 @@ async def balance_request(client: FaucetClient, message):
                 denom = None
 
         if denom:
-            balances = list(filter(lambda balance: balance.original_denom == denom, balances))
+            balance = client.get_balance(address, denom)
         else:
-            balances = []
+            balance = None
 
-        if len(balances) == 0:
+        if not balance:
             await message.reply(f'No balance for address `{address}`')
         else:
-            data = map(lambda balance: {"denom": balance.denom, "amount": balance.amount}, balances)
+            data = [{"denom": balance.denom, "amount": balance.amount}]
             await message.reply(f'Balance for address `{address}`:\n```{tabulate(data, floatfmt=",.0f")}\n```\n')
 
     except Exception as error:
@@ -167,8 +166,8 @@ async def faucet_status(client: FaucetClient, message):
     """
     try:
         node_status = client.get_node_status()
-        balances = client.get_balances(client.faucet_address)
-        if node_status and balances:
+        balance = client.get_balance(client.faucet_address, client.node_denom)
+        if node_status and balance:
             await message.reply(
                 f'```\n'
                 f'Node moniker:      {node_status.moniker}\n'
@@ -351,12 +350,9 @@ async def token_request(client: FaucetClient, message):
             await message.reply(reply)
             return
 
-        balances = client.get_balances(client.faucet_address)
-        network_denom_balance = \
-            next((balance for balance in balances if balance.original_denom == network_denom['denom']), None)
+        balance = client.get_balance(client.faucet_address, network_denom['denom'])
 
-        if not network_denom_balance or \
-                (float(network_denom_balance.amount) < float(client.get_amount_to_send(network_id))):
+        if not balance or (float(balance.amount) < float(client.get_amount_to_send(network_id))):
             revert_daily_consume(client, network_id)
             logging.info('Faucet has no have %s balance', network_denom['denom'])
             await message.reply(f'Faucet is drained out - new {network_denom["baseDenom"]} soon')
@@ -381,7 +377,7 @@ async def token_request(client: FaucetClient, message):
             f'{network_id},{address},'
             f'{amount_to_send}{network_denom["denom"]},'
             f'{transfer},'
-            f'{balances}')
+            f'{balance}')
     except Exception as error:
         if not is_core_team:
             del ACTIVE_REQUESTS[client.key][network_id][requester.id]

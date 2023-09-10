@@ -107,7 +107,7 @@ class FaucetClient:
             return self.token_requests_cap
         return self.ibc_token_requests_cap
 
-    def get_balances(self, address: str) -> List[Balance]:
+    def get_balance(self, address: str, original_denom: str) -> Balance:
         pass
 
     def get_node_status(self) -> NodeStatus:

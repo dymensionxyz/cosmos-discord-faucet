@@ -12,15 +12,15 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     network_name = "dymension"
     faucet_address = "dym1ctqdmjt7hntk2lxskgkphx73frt5h4f44ehjhx"
     address_prefix = "dym1"
-    amount_to_send = "500000000"
-    amount_to_send_evm = "500000000000000000000"
-    daily_cap = "5000000000000"
-    daily_cap_evm = "5000000000000000000000000"
+    amount_to_send = "200000000"
+    amount_to_send_evm = "200000000000000000000"
+    daily_cap = "2000000000000"
+    daily_cap_evm = "2000000000000000000000000"
     tx_fees = "50000"
     token_requests_cap = 6
     ibc_token_requests_cap = 6
     ibc_enabled = true
-    channels_to_listen = "bere"
+    channels_to_listen = ""
     request_timeout = "604800"
     client_type = "COSMOS"
 
@@ -32,15 +32,36 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     network_name = "dymension"
     faucet_address = "dym1g8sf7w4cz5gtupa6y62h3q6a4gjv37pgefnpt5"
     address_prefix = "dym1"
-    amount_to_send = "500000000"
-    amount_to_send_evm = "500000000000000000000"
-    daily_cap = "5000000000000"
-    daily_cap_evm = "5000000000000000000000000"
+    amount_to_send = "200000000"
+    amount_to_send_evm = "200000000000000000000"
+    daily_cap = "2000000000000"
+    daily_cap_evm = "2000000000000000000000000"
     tx_fees = "50000"
     token_requests_cap = 6
     ibc_token_requests_cap = 6
     ibc_enabled = true
     channels_to_listen = ""
+    request_timeout = "604800"
+    client_type = "COSMOS"
+
+    [envs.froopyland]
+    node_rpc = "https://froopyland.rpc.silknodes.io:443"
+    node_executable = "dymd"
+    node_denom = "udym"
+    node_chain_id = "froopyland_100-1"
+    network_name = "froopyland"
+    faucet_address = "dym1g8sf7w4cz5gtupa6y62h3q6a4gjv37pgefnpt5"
+    address_prefix = "dym1"
+    amount_to_send = "200000000"
+    amount_to_send_evm = "200000000000000000000"
+    daily_cap = "2000000000000"
+    daily_cap_evm = "2000000000000000000000000"
+    tx_fees = "50000"
+    block_explorer_tx=""
+    token_requests_cap = 6
+    ibc_token_requests_cap = 6
+    ibc_enabled = true
+    channels_to_listen = "bere"
     request_timeout = "604800"
     client_type = "COSMOS"
 
@@ -61,20 +82,20 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     request_timeout = "604800"
     client_type = "COSMOS"
 
-    [envs.avail]
-    node_ws = "wss://kate.avail.tools/ws"
-    node_denom = "uavl"
-    node_chain_id = "Avail Testnet_116d7474-0481-11ee-bc2a-7bfc086be54e"
-    network_name = "avail"
-    faucet_mnemonic_key = "AVAIL_MNEMONIC"
-    amount_to_send = "100000000000000"
-    daily_cap = "10000000000000000"
-    tx_fees = "10"
-    token_requests_cap = 6
-    ibc_enabled = false
-    channels_to_listen = ""
-    request_timeout = "604800"
-    client_type = "SUBSTRATE"
+#    [envs.avail]
+#    node_ws = "wss://kate.avail.tools/ws"
+#    node_denom = "uavl"
+#    node_chain_id = "Avail Testnet_116d7474-0481-11ee-bc2a-7bfc086be54e"
+#    network_name = "avail"
+#    faucet_mnemonic_key = "AVAIL_MNEMONIC"
+#    amount_to_send = "100000000000000"
+#    daily_cap = "10000000000000000"
+#    tx_fees = "10"
+#    token_requests_cap = 6
+#    ibc_enabled = false
+#    channels_to_listen = ""
+#    request_timeout = "604800"
+#    client_type = "SUBSTRATE"
 
 
 

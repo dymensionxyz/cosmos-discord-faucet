@@ -20,10 +20,10 @@ class SubstrateClient(FaucetClient):
             logging.critical('Faucet mnemonic could not be found: %s', key)
             sys.exit()
 
-    def get_balances(self, address: str) -> List[Balance]:
+    def get_balance(self, address: str, original_denom: str) -> Balance:
         result = self.substrate.query('System', 'Account', [address])
         balance = Balance(self.node_denom, result.value['data']['free'])
-        return [balance]
+        return balance
 
     def fetch_bech32_address(self, address: str) -> str:
         return address

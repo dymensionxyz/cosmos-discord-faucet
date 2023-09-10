@@ -37,13 +37,13 @@ class CosmosClient(FaucetClient):
             balance.denom = response['denom_trace']['base_denom']
         return balance
 
-    def get_balances(self, address: str) -> List[Balance]:
+    def get_balance(self, address: str, original_denom: str) -> Balance:
         """
         dymd query bank balances <address> <node> <chain-id>
         """
         try:
-            response = self.execute(["query", "bank", "balances", address])
-            return list(map(lambda balance: self.get_fixed_balance_denom(Balance(**balance)), response['balances']))
+            response = self.execute(["query", "bank", "balances", address, f'--denom={original_denom}'])
+            return self.get_fixed_balance_denom(Balance(**response))
         except IndexError as index_error:
             logging.error('Parsing error on balance request: %s', index_error)
             raise index_error
