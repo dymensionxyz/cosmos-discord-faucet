@@ -61,7 +61,7 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     token_requests_cap = 6
     ibc_token_requests_cap = 6
     ibc_enabled = true
-    channels_to_listen = "bere"
+    channels_to_listen = "🚰・froopyland-faucet"
     request_timeout = "604800"
     client_type = "COSMOS"
 
