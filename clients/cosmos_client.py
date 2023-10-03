@@ -42,7 +42,7 @@ class CosmosClient(FaucetClient):
         dymd query bank balances <address> <node> <chain-id>
         """
         try:
-            response = self.execute(["query", "bank", "balances", address, f'--denom={original_denom}'])
+            response = self.execute(["query", "bank", "balances", address, f'--denom={original_denom}'], chain_id=False)
             return self.get_fixed_balance_denom(Balance(**response))
         except IndexError as index_error:
             logging.error('Parsing error on balance request: %s', index_error)

@@ -78,7 +78,7 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     tx_fees = "21000"
     token_requests_cap = 6
     ibc_enabled = false
-    channels_to_listen = ""
+    channels_to_listen = "🚰・celestia-faucet"
     request_timeout = "604800"
     client_type = "COSMOS"
 
