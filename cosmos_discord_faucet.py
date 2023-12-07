@@ -352,24 +352,20 @@ async def token_request(client: FaucetClient, message):
 
 async def process_transactions_queue(queue: asyncio.Queue, client: FaucetClient):
     while True:
-        is_core_team = None
-        network_id = None
-        requester = None
-        address = None
-        message = None
+        transaction = await queue.get()
+        message = transaction["message"]
+        address = transaction["address"]
+        network_id = transaction["network_id"]
+        network_denom = transaction["network_denom"]
+        requester = message.author
+        is_core_team = False
+
+        if not network_id or not requester or not address or not message:
+            continue
 
         try:
-            transaction = await queue.get()
-            message = transaction["message"]
-            address = transaction["address"]
-            network_id = transaction["network_id"]
-            network_denom = transaction["network_denom"]
-            requester = message.author
             core_team_role = discord.utils.get(requester.guild.roles, id=CORE_TEAM_ROLE_ID)
             is_core_team = core_team_role in requester.roles
-
-            if is_core_team is None or network_id is None or requester is None or address is None or message is None:
-                continue
 
             # Check whether user or address have received tokens on this testnet
             approved, reply = is_core_team, ''
