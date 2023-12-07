@@ -51,6 +51,7 @@ try:
     ACTIVE_REQUESTS = {env: {} for env in envs}
     NETWORKS_DAY_TALLY = {env: {} for env in envs}
     TRANSACTIONS_QUEUE = {env: asyncio.Queue() for env in envs}
+    TRANSACTIONS_QUEUE_TASKS = {env: None for env in envs}
 except KeyError as key:
     logging.critical('Key could not be found: %s', key)
     sys.exit()
@@ -422,10 +423,6 @@ async def on_ready():
     """
     logging.info('Logged into Discord as %s', discord_client.user)
 
-    for client in CLIENTS:
-        transaction_queue = TRANSACTIONS_QUEUE[client.key]
-        asyncio.create_task(process_transactions_queue(transaction_queue, client))
-
 
 @discord_client.event
 async def on_message(message):
@@ -440,6 +437,12 @@ async def on_message(message):
         # Every client listen in specific channels
         if message.channel.name not in client.channels_to_listen:
             continue
+
+        transaction_queue_task = TRANSACTIONS_QUEUE_TASKS[client.key]
+        if not transaction_queue_task or transaction_queue_task.cancelled():
+            transaction_queue = TRANSACTIONS_QUEUE[client.key]
+            TRANSACTIONS_QUEUE_TASKS[client.key] = asyncio.create_task(
+                process_transactions_queue(transaction_queue, client))
 
         if message.content.startswith('$balance'):
             await balance_request(client, message)
