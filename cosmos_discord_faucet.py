@@ -439,6 +439,8 @@ async def on_message(message):
             continue
 
         transaction_queue_task = TRANSACTIONS_QUEUE_TASKS[client.key]
+        if transaction_queue_task:
+            print("aaaaaa", transaction_queue_task.cancelled())
         if not transaction_queue_task or transaction_queue_task.cancelled():
             transaction_queue = TRANSACTIONS_QUEUE[client.key]
             TRANSACTIONS_QUEUE_TASKS[client.key] = asyncio.create_task(
