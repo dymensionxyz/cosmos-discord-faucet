@@ -107,25 +107,25 @@ class FaucetClient:
             return self.token_requests_cap
         return self.ibc_token_requests_cap
 
-    def get_balance(self, address: str, original_denom: str) -> Balance:
+    async def get_balance(self, address: str, original_denom: str) -> Balance:
         pass
 
-    def get_node_status(self) -> NodeStatus:
+    async def get_node_status(self) -> NodeStatus:
         pass
 
-    def fetch_bech32_address(self, address: str) -> str:
+    async def fetch_bech32_address(self, address: str) -> str:
         pass
 
-    def check_address(self, address: str):
+    async def check_address(self, address: str):
         pass
 
-    def fetch_network_denom_list(self, original_denom=False, cache=True) -> List[NetworkDenomPair]:
+    async def fetch_network_denom_list(self, original_denom=False, cache=True) -> List[NetworkDenomPair]:
         pass
 
-    def tx_send(self, sender: str, recipient: str, amount: str, fees: int) -> str:
+    async def tx_send(self, sender: str, recipient: str, amount: str, fees: int) -> str:
         pass
 
-    def get_tx_info(self, hash_id: str) -> TxInfo:
+    async def get_tx_info(self, hash_id: str) -> TxInfo:
         pass
 
 

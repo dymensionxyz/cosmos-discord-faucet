@@ -10,6 +10,7 @@ import requests
 import aiofiles as aiof
 import toml
 import discord
+import asyncio
 import os
 from tabulate import tabulate
 
@@ -49,11 +50,13 @@ try:
     DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
     ACTIVE_REQUESTS = {env: {} for env in envs}
     NETWORKS_DAY_TALLY = {env: {} for env in envs}
+    TRANSACTIONS_QUEUE = {env: asyncio.Queue() for env in envs}
 except KeyError as key:
     logging.critical('Key could not be found: %s', key)
     sys.exit()
 
 APPROVE_EMOJI = '✅'
+INFO_EMOJI = 'ℹ️'
 REJECT_EMOJI = '🚫'
 WARNING_EMOJI = '❗'
 GENERIC_ERROR_MESSAGE = f'{WARNING_EMOJI} Could not handle your request'
@@ -108,11 +111,11 @@ async def get_and_validate_address_from_params(client: FaucetClient, message, pa
         await message.reply(f'{WARNING_EMOJI} Missing address')
         return
 
-    address = client.fetch_bech32_address(address)
+    address = await client.fetch_bech32_address(address)
     if not address.startswith(client.address_prefix):
         await message.reply(f'{WARNING_EMOJI} Expected `{client.address_prefix}` prefix')
     else:
-        client.check_address(address)
+        await client.check_address(address)
         return address
 
 
@@ -145,7 +148,7 @@ async def balance_request(client: FaucetClient, message):
                 denom = None
 
         if denom:
-            balance = client.get_balance(address, denom)
+            balance = await client.get_balance(address, denom)
         else:
             balance = None
 
@@ -165,9 +168,8 @@ async def faucet_status(client: FaucetClient, message):
     Provide node and faucet info
     """
     try:
-        node_status = client.get_node_status()
-        balance = client.get_balance(client.faucet_address, client.node_denom)
-        if node_status and balance:
+        node_status = await client.get_node_status()
+        if node_status:
             await message.reply(
                 f'```\n'
                 f'Node moniker:      {node_status.moniker}\n'
@@ -193,7 +195,7 @@ async def transaction_info(client: FaucetClient, message):
         return
 
     try:
-        res = client.get_tx_info(transaction_hash)
+        res = await client.get_tx_info(transaction_hash)
         await message.reply(
             f'```From:    {res.sender}\n'
             f'To:      {res.receiver}\n'
@@ -336,55 +338,76 @@ async def token_request(client: FaucetClient, message):
         await message.reply(GENERIC_ERROR_MESSAGE)
         return
 
-    core_team_role = discord.utils.get(requester.guild.roles, id=CORE_TEAM_ROLE_ID)
-    is_core_team = core_team_role in requester.roles
+    # Add send-message to the transactions queue
+    transactions_queue = TRANSACTIONS_QUEUE.get(client.key)
+    asyncio.create_task(transactions_queue.put({
+        "message": message,
+        "address": address,
+        "network_id": network_id,
+        "network_denom": network_denom,
+    }))
+    logging.info('%s requested %s tokens for %s', requester, network_id, address)
+    await message.reply(f'{INFO_EMOJI} Request accepted and is in queue, please wait for a successful response.')
 
-    try:
-        # Check whether user or address have received tokens on this testnet
-        approved, reply = is_core_team, ''
-        if not approved:
-            approved, reply = check_time_limits(client, network_id, requester.id, address)
-        if not approved:
-            revert_daily_consume(client, network_id)
-            logging.info('%s requested %s tokens for %s and was rejected', requester, network_id, address)
-            await message.reply(reply)
-            return
 
-        balance = client.get_balance(client.faucet_address, network_denom['denom'])
+async def process_transactions_queue(queue: asyncio.Queue, client: FaucetClient):
+    while True:
+        transaction = await queue.get()
+        message = transaction["message"]
+        address = transaction["address"]
+        network_id = transaction["network_id"]
+        network_denom = transaction["network_denom"]
+        requester = message.author
+        core_team_role = discord.utils.get(requester.guild.roles, id=CORE_TEAM_ROLE_ID)
+        is_core_team = core_team_role in requester.roles
 
-        if not balance or (float(balance.amount) < float(client.get_amount_to_send(network_id))):
-            revert_daily_consume(client, network_id)
-            logging.info('Faucet has no have %s balance', network_denom['denom'])
-            await message.reply(f'Faucet is drained out - new {network_denom["baseDenom"]} soon')
-            return
+        try:
+            # Check whether user or address have received tokens on this testnet
+            approved, reply = is_core_team, ''
+            if not approved:
+                approved, reply = check_time_limits(client, network_id, requester.id, address)
+            if not approved:
+                revert_daily_consume(client, network_id)
+                logging.info('%s requested %s tokens for %s and was rejected', requester, network_id, address)
+                await message.reply(reply)
+                return
 
-        # Make client call and send the response back
-        amount_to_send = client.get_amount_to_send(network_id)
-        amount = f'{amount_to_send}{network_denom["denom"]}'
-        transfer = client.tx_send(client.faucet_address, address, amount, client.tx_fees)
-        logging.info('%s requested %s tokens for %s', requester, network_id, address)
-        now = datetime.datetime.now()
+            balance = await client.get_balance(client.faucet_address, network_denom['denom'])
 
-        if client.block_explorer_tx:
-            await message.reply(f'{APPROVE_EMOJI}  <{client.block_explorer_tx}{transfer}>')
-        else:
-            await message.reply(
-                f'{APPROVE_EMOJI} Your tx is approved. To view your tx status, type `$tx_info {transfer}`')
+            if not balance or (float(balance.amount) < float(client.get_amount_to_send(network_id))):
+                revert_daily_consume(client, network_id)
+                logging.info('Faucet has no have %s balance', network_denom['denom'])
+                await message.reply(f'Faucet is drained out - new {network_denom["baseDenom"]} soon')
+                return
 
-        # save to transaction log
-        await save_transaction_statistics(
-            f'{now.isoformat(timespec="seconds")},'
-            f'{network_id},{address},'
-            f'{amount_to_send}{network_denom["denom"]},'
-            f'{transfer},'
-            f'{balance}')
-    except Exception as error:
-        if not is_core_team:
-            del ACTIVE_REQUESTS[client.key][network_id][requester.id]
-            del ACTIVE_REQUESTS[client.key][network_id][address]
-            revert_daily_consume(client, network_id)
-        logging.error('Token request failed: %s', error)
-        await message.reply(GENERIC_ERROR_MESSAGE)
+            amount_to_send = client.get_amount_to_send(network_id)
+            amount = f'{amount_to_send}{network_denom["denom"]}'
+            transfer = await client.tx_send(client.faucet_address, address, amount, client.tx_fees)
+            now = datetime.datetime.now()
+
+            if client.block_explorer_tx:
+                await message.reply(f'{APPROVE_EMOJI}  <{client.block_explorer_tx}{transfer}>')
+            else:
+                await message.reply(
+                    f'{APPROVE_EMOJI} Your tx is approved. To view your tx status, type `$tx_info {transfer}`')
+
+            # save to transaction log
+            await save_transaction_statistics(
+                f'{now.isoformat(timespec="seconds")},'
+                f'{network_id},{address},'
+                f'{amount_to_send}{network_denom["denom"]},'
+                f'{transfer},'
+                f'{balance}')
+
+        except Exception as error:
+            if not is_core_team:
+                del ACTIVE_REQUESTS[client.key][network_id][requester]
+                del ACTIVE_REQUESTS[client.key][network_id][address]
+                revert_daily_consume(client, network_id)
+            logging.error('Token request failed: %s', error)
+            await message.reply(GENERIC_ERROR_MESSAGE)
+
+        queue.task_done()
 
 
 @discord_client.event
@@ -393,6 +416,10 @@ async def on_ready():
     Gets called when the Discord client logs in
     """
     logging.info('Logged into Discord as %s', discord_client.user)
+
+    for client in CLIENTS:
+        transaction_queue = TRANSACTIONS_QUEUE[client.key]
+        asyncio.create_task(process_transactions_queue(transaction_queue, client))
 
 
 @discord_client.event
