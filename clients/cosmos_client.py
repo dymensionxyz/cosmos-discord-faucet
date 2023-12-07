@@ -27,7 +27,7 @@ class CosmosClient(FaucetClient):
         # Wait for the subprocess to complete
         stdout, stderr = await process.communicate()
         stdout = stdout.decode("utf-8")
-        stderr.decode("utf-8")
+        stderr = stderr.decode("utf-8")
 
         try:
             if process.returncode:
@@ -93,7 +93,7 @@ class CosmosClient(FaucetClient):
         # Wait for the subprocess to complete
         stdout, stderr = await process.communicate()
         stdout = stdout.decode("utf-8")
-        stderr.decode("utf-8")
+        stderr = stderr.decode("utf-8")
 
         try:
             if process.returncode:
