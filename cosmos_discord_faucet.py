@@ -354,66 +354,69 @@ async def token_request(client: FaucetClient, message):
 async def process_transactions_queue(queue: asyncio.Queue, client: FaucetClient):
     while True:
         transaction = await queue.get()
-        message = transaction["message"]
-        address = transaction["address"]
-        network_id = transaction["network_id"]
-        network_denom = transaction["network_denom"]
-        requester = message.author
-        is_core_team = False
-
-        if not network_id or not requester or not address or not message:
-            continue
 
         try:
-            core_team_role = discord.utils.get(requester.guild.roles, id=CORE_TEAM_ROLE_ID)
-            is_core_team = core_team_role in requester.roles
+            message = transaction["message"]
+            address = transaction["address"]
+            network_id = transaction["network_id"]
+            network_denom = transaction["network_denom"]
+            requester = message.author
+            is_core_team = False
 
-            # Check whether user or address have received tokens on this testnet
-            approved, reply = is_core_team, ''
-            if not approved:
-                approved, reply = check_time_limits(client, network_id, requester.id, address)
-            if not approved:
-                revert_daily_consume(client, network_id)
-                logging.info('%s requested %s tokens for %s and was rejected', requester, network_id, address)
-                await message.reply(reply)
-                return
+            try:
+                core_team_role = discord.utils.get(requester.guild.roles, id=CORE_TEAM_ROLE_ID)
+                is_core_team = core_team_role in requester.roles
 
-            balance = await client.get_balance(client.faucet_address, network_denom['denom'])
+                # Check whether user or address have received tokens on this testnet
+                approved, reply = is_core_team, ''
+                if not approved:
+                    approved, reply = check_time_limits(client, network_id, requester.id, address)
+                if not approved:
+                    revert_daily_consume(client, network_id)
+                    logging.info('%s requested %s tokens for %s and was rejected', requester, network_id, address)
+                    await message.reply(reply)
+                    return
 
-            if not balance or (float(balance.amount) < float(client.get_amount_to_send(network_id))):
-                revert_daily_consume(client, network_id)
-                logging.info('Faucet has no have %s balance', network_denom['denom'])
-                await message.reply(f'Faucet is drained out - new {network_denom["baseDenom"]} soon')
-                return
+                balance = await client.get_balance(client.faucet_address, network_denom['denom'])
 
-            amount_to_send = client.get_amount_to_send(network_id)
-            amount = f'{amount_to_send}{network_denom["denom"]}'
-            transfer = await client.tx_send(client.faucet_address, address, amount, client.tx_fees)
-            now = datetime.datetime.now()
+                if not balance or (float(balance.amount) < float(client.get_amount_to_send(network_id))):
+                    revert_daily_consume(client, network_id)
+                    logging.info('Faucet has no have %s balance', network_denom['denom'])
+                    await message.reply(f'Faucet is drained out - new {network_denom["baseDenom"]} soon')
+                    return
 
-            if client.block_explorer_tx:
-                await message.reply(f'{APPROVE_EMOJI}  <{client.block_explorer_tx}{transfer}>')
-            else:
-                await message.reply(
-                    f'{APPROVE_EMOJI} Your tx is approved. To view your tx status, type `$tx_info {transfer}`')
+                amount_to_send = client.get_amount_to_send(network_id)
+                amount = f'{amount_to_send}{network_denom["denom"]}'
+                transfer = await client.tx_send(client.faucet_address, address, amount, client.tx_fees)
+                now = datetime.datetime.now()
 
-            # save to transaction log
-            await save_transaction_statistics(
-                f'{now.isoformat(timespec="seconds")},'
-                f'{network_id},{address},'
-                f'{amount_to_send}{network_denom["denom"]},'
-                f'{transfer},'
-                f'{balance}')
+                if client.block_explorer_tx:
+                    await message.reply(f'{APPROVE_EMOJI}  <{client.block_explorer_tx}{transfer}>')
+                else:
+                    await message.reply(
+                        f'{APPROVE_EMOJI} Your tx is approved. To view your tx status, type `$tx_info {transfer}`')
+
+                # save to transaction log
+                await save_transaction_statistics(
+                    f'{now.isoformat(timespec="seconds")},'
+                    f'{network_id},{address},'
+                    f'{amount_to_send}{network_denom["denom"]},'
+                    f'{transfer},'
+                    f'{balance}')
+
+            except Exception as error:
+                if not is_core_team:
+                    del ACTIVE_REQUESTS[client.key][network_id][requester]
+                    del ACTIVE_REQUESTS[client.key][network_id][address]
+                    revert_daily_consume(client, network_id)
+                logging.error('Token request failed: %s', error)
+                await message.reply(GENERIC_ERROR_MESSAGE)
 
         except Exception as error:
-            if not is_core_team:
-                del ACTIVE_REQUESTS[client.key][network_id][requester]
-                del ACTIVE_REQUESTS[client.key][network_id][address]
-                revert_daily_consume(client, network_id)
             logging.error('Token request failed: %s', error)
-            await message.reply(GENERIC_ERROR_MESSAGE)
 
-        queue.task_done()
+        finally:
+            queue.task_done()
 
 
 @discord_client.event
@@ -439,8 +442,6 @@ async def on_message(message):
             continue
 
         transaction_queue_task = TRANSACTIONS_QUEUE_TASKS[client.key]
-        if transaction_queue_task:
-            print("aaaaaa", transaction_queue_task.cancelled())
         if not transaction_queue_task or transaction_queue_task.cancelled():
             transaction_queue = TRANSACTIONS_QUEUE[client.key]
             TRANSACTIONS_QUEUE_TASKS[client.key] = asyncio.create_task(
