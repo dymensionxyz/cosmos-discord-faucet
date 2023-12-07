@@ -145,7 +145,7 @@ class CosmosClient(FaucetClient):
         """
         dymd query tx <tx-hash> <node> <chain-id>
         """
-        tx_response = await self.execute(['query', 'tx', f'{hash_id}'])
+        tx_response = await self.execute(['query', 'tx', '--type=hash', f'{hash_id}'])
         try:
             tx_body = tx_response['tx']['body']['messages'][0]
             height = int(tx_response['height'])
