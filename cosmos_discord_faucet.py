@@ -355,7 +355,8 @@ async def process_transactions_queue(queue: asyncio.Queue, client: FaucetClient)
     while True:
         logging.info('====================== START LOOP ===========================')
         transaction = await queue.get()
-        logging.info('== transaction ==', transaction)
+        logging.info("==transaction==")
+        logging.info(transaction)
 
         try:
             message = transaction["message"]
@@ -378,23 +379,23 @@ async def process_transactions_queue(queue: asyncio.Queue, client: FaucetClient)
                     revert_daily_consume(client, network_id)
                     logging.info('%s requested %s tokens for %s and was rejected', requester, network_id, address)
                     await message.reply(reply)
-                    return
+                    continue
 
                 logging.info('== fetch balance ==')
                 balance = await client.get_balance(client.faucet_address, network_denom['denom'])
-                logging.info('== balance result ==', balance)
+                logging.info('== balance result ==')
 
                 if not balance or (float(balance.amount) < float(client.get_amount_to_send(network_id))):
                     revert_daily_consume(client, network_id)
                     logging.info('Faucet has no have %s balance', network_denom['denom'])
                     await message.reply(f'Faucet is drained out - new {network_denom["baseDenom"]} soon')
-                    return
+                    continue
 
                 amount_to_send = client.get_amount_to_send(network_id)
                 amount = f'{amount_to_send}{network_denom["denom"]}'
                 logging.info('== broadcast transaction ==')
                 transfer = await client.tx_send(client.faucet_address, address, amount, client.tx_fees)
-                logging.info('== transaction result ==', transfer)
+                logging.info(f'== transaction result =={transfer}')
                 now = datetime.datetime.now()
 
                 if client.block_explorer_tx:
