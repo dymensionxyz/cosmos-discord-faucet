@@ -353,7 +353,9 @@ async def token_request(client: FaucetClient, message):
 
 async def process_transactions_queue(queue: asyncio.Queue, client: FaucetClient):
     while True:
+        logging.info('====================== START LOOP ===========================')
         transaction = await queue.get()
+        logging.info('== transaction ==', transaction)
 
         try:
             message = transaction["message"]
@@ -364,6 +366,7 @@ async def process_transactions_queue(queue: asyncio.Queue, client: FaucetClient)
             is_core_team = False
 
             try:
+                logging.info('== start handle transaction ==')
                 core_team_role = discord.utils.get(requester.guild.roles, id=CORE_TEAM_ROLE_ID)
                 is_core_team = core_team_role in requester.roles
 
@@ -377,7 +380,9 @@ async def process_transactions_queue(queue: asyncio.Queue, client: FaucetClient)
                     await message.reply(reply)
                     return
 
+                logging.info('== fetch balance ==')
                 balance = await client.get_balance(client.faucet_address, network_denom['denom'])
+                logging.info('== balance result ==', balance)
 
                 if not balance or (float(balance.amount) < float(client.get_amount_to_send(network_id))):
                     revert_daily_consume(client, network_id)
@@ -387,7 +392,9 @@ async def process_transactions_queue(queue: asyncio.Queue, client: FaucetClient)
 
                 amount_to_send = client.get_amount_to_send(network_id)
                 amount = f'{amount_to_send}{network_denom["denom"]}'
+                logging.info('== broadcast transaction ==')
                 transfer = await client.tx_send(client.faucet_address, address, amount, client.tx_fees)
+                logging.info('== transaction result ==', transfer)
                 now = datetime.datetime.now()
 
                 if client.block_explorer_tx:
@@ -405,18 +412,23 @@ async def process_transactions_queue(queue: asyncio.Queue, client: FaucetClient)
                     f'{balance}')
 
             except Exception as error:
+                logging.info('== first error ==', error)
                 if not is_core_team:
                     del ACTIVE_REQUESTS[client.key][network_id][requester]
                     del ACTIVE_REQUESTS[client.key][network_id][address]
                     revert_daily_consume(client, network_id)
                 logging.error('Token request failed: %s', error)
                 await message.reply(GENERIC_ERROR_MESSAGE)
+                logging.info('== end first error ==')
 
         except Exception as error:
+            logging.info('== second error ==')
             logging.error('Token request failed: %s', error)
 
         finally:
+            logging.info('********************* END LOOP *************************')
             queue.task_done()
+            logging.info('== TASK IS DONE ==')
 
 
 @discord_client.event
