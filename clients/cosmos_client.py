@@ -121,7 +121,7 @@ class CosmosClient(FaucetClient):
                     recipient,
                     amount,
                     f'--fees={fees}{self.node_denom}',
-                    '--broadcast-mode=block'
+                    '--broadcast-mode=block',
                     '--keyring-backend=test',
                     '-y'
                 ])
