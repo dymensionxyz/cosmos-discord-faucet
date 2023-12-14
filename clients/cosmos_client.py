@@ -111,23 +111,26 @@ class CosmosClient(FaucetClient):
         """
         dymd tx bank send <from address> <to address> <amount> <fees> <node> <chain-id> --keyring-backend=test -y
         """
-        response = await self.execute([
-            'tx',
-            'bank',
-            'send',
-            sender,
-            recipient,
-            amount,
-            f'--fees={fees}{self.node_denom}',
-            '--keyring-backend=test',
-            '-y'
-        ])
-        try:
-            logging.info("Tx Send response %s", response)
-            return response['txhash']
-        except (TypeError, KeyError) as err:
-            logging.critical('Could not read %s in tx response', err)
-            raise err
+        for i in range(5):
+            try:
+                response = await self.execute([
+                    'tx',
+                    'bank',
+                    'send',
+                    sender,
+                    recipient,
+                    amount,
+                    f'--fees={fees}{self.node_denom}',
+                    '--keyring-backend=test',
+                    '-y'
+                ])
+                logging.info("Tx Send response %s", response)
+                if response['code'] == 0:
+                    return response['txhash']
+            except (TypeError, KeyError) as err:
+                logging.critical('Could not read %s in tx response', err)
+
+        raise Exception('Could not perform send request')
 
     async def fetch_bech32_address(self, address: str) -> str:
         if not address.startswith('0x'):
