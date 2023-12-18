@@ -45,7 +45,7 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     client_type = "COSMOS"
 
     [envs.froopyland]
-    node_rpc = "https://froopyland.rpc.silknodes.io:443"
+    node_rpc = "https://froopyland.blockpi.network:443/rpc/v1/0837569d56317f9a6af3c82170a7242ce8319ae4"
     node_executable = "dymd"
     node_denom = "udym"
     node_chain_id = "froopyland_100-1"
