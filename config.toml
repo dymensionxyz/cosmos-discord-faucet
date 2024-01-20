@@ -66,7 +66,7 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     client_type = "COSMOS"
 
     [envs.blumbus]
-    node_rpc = "https://blumbus.rpc.silknodes.io:443"
+    node_rpc = "https://blumbus.blockpi.network:443/rpc/v1/6da67406c258d5e7849590c843ae7d7324d03079"
     node_executable = "dymd"
     node_denom = "adym"
     node_chain_id = "blumbus_111-1"
