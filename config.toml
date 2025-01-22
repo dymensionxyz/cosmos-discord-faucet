@@ -25,22 +25,22 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     client_type = "COSMOS"
 
     [envs.devnet]
-    node_rpc = "http://3.71.160.88:36657"
+    node_rpc = "https://rpc-dym-migration-test-2.mzonder.com:443"
     node_executable = "dymd"
     node_denom = "adym"
-    node_chain_id = "dymension_100-1"
+    node_chain_id = "dymension_1405-1"
     network_name = "Dymension Devnet"
     faucet_address = "dym1g8sf7w4cz5gtupa6y62h3q6a4gjv37pgefnpt5"
     address_prefix = "dym1"
-    amount_to_send = "500000000"
-    amount_to_send_evm = "500000000000000000000"
-    daily_cap = "1000000000000"
-    daily_cap_evm = "1000000000000000000000000"
-    tx_fees = "40000000000000000"
+    amount_to_send = "10000000"
+    amount_to_send_evm = "10000000000000000000"
+    daily_cap = "100000000000"
+    daily_cap_evm = "100000000000000000000000"
+    tx_fees = "1000000000000000"
     token_requests_cap = 6
     ibc_token_requests_cap = 6
     ibc_enabled = true
-    channels_to_listen = "🚰・devnet-faucet"
+    channels_to_listen = "🚰・playground-faucet"
     request_timeout = "604800"
     client_type = "COSMOS"
 
@@ -66,17 +66,17 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     client_type = "COSMOS"
 
     [envs.blumbus]
-    node_rpc = "https://blumbus.blockpi.network:443/rpc/v1/6da67406c258d5e7849590c843ae7d7324d03079"
+    node_rpc = "https://dymension-testnet-tendermint.blastapi.io:443/291f79ab-77c1-4c90-b769-8218b1816f5c"
     node_executable = "dymd"
     node_denom = "adym"
     node_chain_id = "blumbus_111-1"
     network_name = "blumbus"
     faucet_address = "dym1g8sf7w4cz5gtupa6y62h3q6a4gjv37pgefnpt5"
     address_prefix = "dym1"
-    amount_to_send = "500000000"
-    amount_to_send_evm = "500000000000000000000"
-    daily_cap = "1000000000000"
-    daily_cap_evm = "1000000000000000000000000"
+    amount_to_send = "10000000"
+    amount_to_send_evm = "10000000000000000000"
+    daily_cap = "100000000000"
+    daily_cap_evm = "100000000000000000000000"
     tx_fees = "40000000000000000"
     block_explorer_tx="https://explorer.silknodes.io/blumbus/tx/"
     token_requests_cap = 6
@@ -94,6 +94,27 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     network_name = "RollApp X"
     faucet_address = "rolx1g8sf7w4cz5gtupa6y62h3q6a4gjv37pg5aeahk"
     address_prefix = "rolx"
+    amount_to_send = "20000000"
+    amount_to_send_evm = "20000000000000000000"
+    daily_cap = "200000000000"
+    daily_cap_evm = "200000000000000000000000"
+    tx_fees = "10000000000"
+    block_explorer_tx=""
+    token_requests_cap = 6
+    ibc_token_requests_cap = 6
+    ibc_enabled = true
+    channels_to_listen = "🚰・rollapp-x-faucet"
+    request_timeout = "604800"
+    client_type = "COSMOS"
+
+    [envs.y]
+    node_rpc = "https://rpc.roly.wasm.ra.blumbus.noisnemyd.xyz:443"
+    node_executable = "rollapp-evm"
+    node_denom = "aroly"
+    node_chain_id = "rollappy_700002-1"
+    network_name = "RollApp Y"
+    faucet_address = "roly1g8sf7w4cz5gtupa6y62h3q6a4gjv37pglrwk6a"
+    address_prefix = "roly"
     amount_to_send = "200000000"
     amount_to_send_evm = "200000000000000000000"
     daily_cap = "2000000000000"
@@ -103,7 +124,7 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     token_requests_cap = 6
     ibc_token_requests_cap = 6
     ibc_enabled = true
-    channels_to_listen = "🚰・rollapp-x-faucet"
+    channels_to_listen = "🚰・rollapp-y-faucet"
     request_timeout = "604800"
     client_type = "COSMOS"
 
@@ -123,7 +144,4 @@ network_denoms_url = "https://fetchnetworkdenomrequest-zbrmx4rjia-uc.a.run.app"
     channels_to_listen = "🚰・celestia-faucet"
     request_timeout = "604800"
     client_type = "COSMOS"
-
-
-
 
